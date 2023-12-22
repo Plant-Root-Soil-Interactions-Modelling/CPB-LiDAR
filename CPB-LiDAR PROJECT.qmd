@@ -1,6 +1,7 @@
 ---
 title: "CPB-LiDAR : RECOVER PLANT DATA FROM LiDAR METRICS USING STRUCTURAL MODELING AND MACHINE LEARNING"
 format: html
+output-file: 'index.html'
 editor: visual
 bibliography: PHENOROB.bib
 ---
