@@ -1,4 +1,4 @@
-![banner](https://github.com/Plant-Root-Soil-Interactions-Modelling/CPB-LiDAR/assets/76696254/0804d92c-03c9-4f67-8a5e-c12aefbf940a)# CPB-LiDAR
+# CPB-LiDAR
 A virtual pipeline to study sensitivity of UAV-like LiDAR metrics to plant parameters using structural modeling and machine learning.
 
 <img src="figures/banner.png" width="400"/>
