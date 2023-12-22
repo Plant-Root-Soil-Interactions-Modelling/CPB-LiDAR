@@ -5,4 +5,5 @@ This project use CPlantBox (2022 release) to generate virtual fields, from which
 Next, the relations between such artificial LiDAR metrics and plant parameters can be investigated.
 
 Installation : 
-- CPlantBox : 2022 release (DOI : 10.5281/zenodo.6953939)
+- CPlantBox : 2022 release (DOI : 10.5281/zenodo.6953939). Follow instructions in CPlantBox repository.
+- Drop the folder of this project (CPB-LiDAR) into CPlantBox-master/CPB/CPlantBox/
