@@ -1,0 +1,837 @@
+---
+title: "CPB-LiDAR : RECOVER PLANT DATA FROM LiDAR METRICS USING STRUCTURAL MODELING AND MACHINE LEARNING"
+format: html
+editor: visual
+bibliography: PHENOROB.bib
+---
+
+**Marco D'Agostino^1,2^, Jordan Bates^1^, Guillaume Lobet^1,2^**
+
+^*1*^*Earth and Life Institute, UCLouvain, 1348 Louvain-la-Neuve, Belgium\
+^2^Agrosphere IBG3, Forschungszentrum Juelich, 52428 Juelich, Germany*
+
+This project was founded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany's Excellence Strategy-EXC 2070-390732324 (PhenoRob).
+
+![](figures/logos.png){fig-align="center" width="200"}
+
+# INTRODUCTION
+
+Field monitoring using unmanned aircraft systems (UAS) is a new promising field of research that aims to retrieve plant information from drone monitoring. In particular, measures with LiDAR sensors mounted on UAS are useful to characterize canopy, and are also promising to estimate strucutral plant parameters (ex LAI, biomass) [@bates_estimating_2021].
+
+Rough LiDAR data consists of a very dense point cloud of the field. With this point cloud, we can define a grid and apply algorithms to extract *metrics* : Crop Height (indicator of height per gridcell), Gap Fraction (indicator of canopy density per grid cell) and Intensity (which will not be used here). Such metrics can next be correlated with destructive emasurements, to build regressions to predict plant parameters from LiDAR data.
+
+![](figures/Image1.png){fig-align="center"}
+
+More specifically, @bates_machine_2022 used a neural network to predict field biomass from LiDAR metrics.
+
+In this project, we want to investigate the idea of using [CPlantBox](https://github.com/Plant-Root-Soil-Interactions-Modelling/CPlantBox/) [@zhou2020], a plant structural model, to emulate LiDAR field data, and find relations between LiDAR metrics and plant parameters. CPlantBox [@zhou2020] is a functional-structural plant model (FSPM) that can generate 3D plant architectures. CPlantBox generates individual plants, and it is possible to loop the process to generate a whole virtual field. Since these virtual fields are composed of nodes and segments, it would be theoritically possible to apply algorithms to extract artificial LiDAR data (Crop Height and Gap Fraction) from it. It would be next possible to loop this process with different sets of plant parameters, and study the sensistivity of artificial LiDAR metrics to these plant parameters. Finally, by inversing the process, it would be possible to build regressions of plant parameters from artificial LiDAR metrics, and therefore add insights on LiDAR-based plant status predictions.
+
+The goals of this project are :
+
+1.  Parametrize CPlantBox to generate pseudo-realistic wheat field with different sets of plant parameter
+
+2.  Convert CPlantBox field simulation into LiDAR-like data (basically create artificial LiDAR metrics from CPlantBox field simulation).
+
+3.  Use machine learning techniques to retrieve plant parameters from artificial LiDAR metrics.
+
+In this notebook we first present a code pipeline to generate CPlantBox-based virtual fields. Then we use functions to extract artificial LiDAR metrics (Crop Height and Gap Fraction) from the virtual fields. We loop this process to investigate the sensitivity of these LiDAR metrics to 3 plant parameters : stem growth rate, stem inter-lateral distance and number of tillers. At last, we test some simple machine learning methods (linear regression and neural network) to recover plant parameters from LiDAR metrics.
+
+# SET UP
+
+This project consist of a folder containing this notebook as well as R functions and python functions. The folder is dropped into the general CPlantBox folder. We used the 2022 release of CPlantBox [@schnepfa_plant-root-soil-interactions-modellingcplantbox_2022] ; general instructions to install CPlantBox are available [here](https://github.com/Plant-Root-Soil-Interactions-Modelling/CPlantBox/wiki/Help-for-windows-users)***.*** The installation for our personal setup is described in annexes.
+
+Once CPlantBox is installed, you simply need to put the folder *CPB-LiDAR* of this repository in *CPB/CPlantBox/.* To run this notebook.
+
+In the following chunk, we define our paths :
+
+-   *path_wheat* is the path to *Wheat.xml*, which is the parameter file read by CPlantBox to generate individual plants
+
+-   *path_python3* is the path to anaconda python to run python files
+
+-   *path_CPB* is the path to our python functions
+
+-   *path_R_functions* is the path to utilitary functions for this notebook.
+
+```{r}
+options(rstudio.help.showDataPreview = FALSE) # Prevent bug
+rm(list=ls()) # clean workspace
+# setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # Set working directory to the current file
+
+# PLANT PARAM PATH
+path_wheat <- "Wheat.xml"
+
+# SET HERE YOUR PYTHON3 PATH
+# path_python3 <- "/home/mdago/anaconda3/envs/CPB/bin/python3"
+path_python3 <- "/home/mdago/anaconda3/envs/CPB2/bin/python3"
+
+# PYTHON SCRIPTS PATH
+path_CPB <- "python_files/"
+
+# R SCRIPTS PATH
+path_R_functions <- "R Functions/"
+```
+
+Installation/loading of libraries :
+
+```{r, include=FALSE}
+#==========================================================================
+libs <- c("fmsb", "SciViews", "pander", "visreg", "readxl", "EnvStats", "FactoMineR", "factoextra", "knitr", "data.table", "reticulate", "xml2", "tidyverse", "dplyr", "plyr", "viridis", "Hmisc", "ggplot2", "gridExtra", "ggpubr","cowplot", "stats", "emmeans")
+# "riot"
+#==========================================================================
+for(pk in libs) {
+  if (!requireNamespace(pk, quietly = TRUE)) {
+    # If not installed, install the package
+    install.packages(pk)
+  }
+  
+  library(pk, character.only = T)
+}
+#==========================================================================
+fct <- list.files(path_R_functions, pattern = ".R")
+for(i in fct){
+  # print(paste0("R Functions/", i))
+  source(paste0(path_R_functions, i))
+}
+#==========================================================================
+# source("My_Neural_Network_functions.R")
+```
+
+# 1. DATA DESCRIPTION
+
+The data used in this work are kindly provided by J. Bates, C. Montzka, R. Bajracharya and F. Jonard, and were collected during a flight campaign at the PhenoRob Central Experiment, Campus Klien Altendorf (CKA), Germany, in 2021. More specifically, we focus on one plot composed of 6 subplots of each 1.5 x 3 m. The team of J. Bates measured Crop Height (CH), Gap Fraction (GF) and Intensity (I) at 7 dates using LiDAR sensors mounted on UAS. They also took destructive measurements ; BBCH (development stage) and Biomass.
+
+We used these data only to compare and calibrate our simulations.
+
+```{r}
+files <- list.files(path = "data/LiDAR_Metrics/", pattern = ".csv")
+
+LiDAR_metrics <- data.frame()
+for(i in files){
+  print(i)
+  date_i <- as.Date(strsplit(i, split = "_")[[1]][1], format="%Y%m%d")
+  file_i <- read.csv(paste0("data/LiDAR_Metrics/", i))
+  file_i$date <- date_i
+  LiDAR_metrics <- rbind(LiDAR_metrics, file_i)
+}
+
+BBCH <- data.frame(date = unique(LiDAR_metrics$date),
+                   BBCH = c(28, 33, 36, 61, 76, 87, 90))
+
+Days <- data.frame(date = unique(LiDAR_metrics$date),
+                   day = as.numeric(as.Date(unique(LiDAR_metrics$date)) - as.Date("2020-11-16")))
+
+LiDAR_metrics <- inner_join(LiDAR_metrics, BBCH, by = "date")
+
+# Read tables
+BBCH2 <- read_excel(path = "data/myCKA.xlsx", sheet = "BBCH")  
+Biomass <- read_excel(path = "data/myCKA.xlsx", sheet = "biomass") 
+BBCH_scale <- read.csv("data/BBCH_scale.csv")
+
+```
+
+### Destructive data
+
+```{r}
+ggplot(data = Biomass) +
+  geom_line(aes(x = Date, y = Value, color = Organ)) +
+  # geom_smooth(aes(x = Date, y = Value, color = Organ)) +
+  facet_wrap(~Type) +
+  theme_test()
+
+ggplot(data = BBCH2) +
+  geom_line(aes(x = Date, y = BBCH)) +
+  theme_test()
+```
+
+### LiDAR data
+
+```{r}
+GF_grid <- ggplot(data = LiDAR_metrics,
+       aes(x = x-min(x), y = y-min(y), color = GF, fill = GF)) +
+  #geom_point(size = , shape = 15) +
+  geom_tile() +
+  coord_fixed() +
+  theme_test() +
+  scale_color_viridis() +
+  scale_fill_viridis() +
+  xlab("x") +
+  ylab("y") +
+  facet_wrap(~date)
+GF_grid
+
+CH_grid <- ggplot(data = LiDAR_metrics,
+       aes(x = x-min(x), y = y-min(y), color = Height, fill = Height)) +
+  # geom_point(size = 1, shape = 15) +
+  geom_tile() +
+  coord_fixed() +
+  theme_test() +
+  scale_color_viridis() +
+  scale_fill_viridis() +
+  xlab("x") +
+  ylab("y") +
+  facet_wrap(~date)
+CH_grid
+
+I_grid <- ggplot(data = LiDAR_metrics,
+       aes(x = x-min(x), y = y-min(y), color = Intensity, fill = Intensity)) +
+  # geom_point(size = 1, shape = 15) +
+  geom_tile() +
+  coord_fixed() +
+  theme_test() +
+  scale_color_viridis() +
+  scale_fill_viridis() +
+  xlab("x") +
+  ylab("y") +
+  facet_wrap(~date)
+I_grid
+```
+
+# 2. CPLANTBOX
+
+In this section we implement functions to use CPlantBox to generate individual plants and group them in a field.
+
+![Example of virtual field generated with CPlantBox](figures/Image2.png){fig-align="center"}
+
+First we define all plant parameters of our field. We use a XML param file called *Wheat.xml* that will be read by CPlantBox. We update that file when we change params value. For these tests, results will be stored in Test folder.
+
+We add some new parameters in the XML that define the field we want to generate : number of rows, columns, plots, etc... These field parameters are not directly read by CPlantBox, but are inputs of custom scripts that loop CPlantBox to arrange individual plants in a field setup.
+
+```{r}
+simtime = 130.
+dx = 10.
+N_iter = simtime/dx
+date = Sys.Date()
+#==================================================================================
+param_file = path_wheat
+grid_size = 20
+#==================================================================================
+# Field parameters
+N_row = 12       # number of rows 
+N_col = 6       # number of columns
+N_plots = 2     # number of plots
+dist_col = 25   # distance between the root systems within a row [cm]
+dist_row = 25   # distance between crop row
+dist_plot = N_col*dist_row + 40 # distance between crop plot
+#==================================================================================
+# Plant parameters
+#==================================================================================
+## Stem
+stem_r = 10 # 1
+stem_lmax = 100 
+stem_ln = 50
+stem_theta = 0.1
+#==================================================================================
+## Tiller
+maxTi = 1
+# other tiller parameters?  
+#==================================================================================
+## leaf
+leaf_lb = 8                     # basal length = 8
+leaf_la = 35                    # apical length = 35
+leaf_ln = 0                     # inter-lateral dist
+leaf_lmax = 43                  # max length
+leaf_r = 4                      # growth rate
+leaf_a = 0.1                    # radius
+leaf_Width_petiole = 0.35       # petiole width
+leaf_Width_blade = 1.5          # blad width
+leaf_shapeType = 2              # shape type
+leaf_tropismT = 1               # Tropism 1
+leaf_tropismN = 9.81            # Gravitropism
+leaf_tropismS = 0.1             # Tropism 2
+leaf_dx = 2                     # Axial Resolution
+leaf_dxMin = 1                  
+leaf_theta = 0.1
+leaf_rit = 1000000000
+leaf_gf = 3 # 3
+leaf_areaMax = 100
+leaf_geometryN = 100
+
+# =================================================================================
+# SET PARAMS
+# =================================================================================
+source("R Functions/Write_Params.R")
+
+Param_ID <- read.csv("data/Param_ID.csv")
+Params <- CPB_read_params(path_wheat)      # Read XML param file
+Params <- CPB_updateParams(Params)         # Update the parameters
+CPB_write_param(Params, path = path_wheat) # Write XML param file
+
+Params <- join(Params, Param_ID)
+Params <- Params[c("paramID", "param_value")]
+Params$simulationID <- NaN
+```
+
+Once we defined our parameters, we will write a CPlantBox python file containing instructions, that will be run in Linux.
+
+This is done with the function *Write_CPB*.
+
+The argument *type* can be set to "solo" to simulate one plant, "field" to simulate a field or "field_TS" to simulate time series of one field.
+
+## Solo plant
+
+With the following code, we run CPlantBox for one unique plant and plot the result.
+
+```{r, eval =FALSE}
+#==================================================================================
+# Write CPB executable
+Write_CPB(type = "solo",                              # To generate one plant
+          param_filename = "Wheat.xml",               # Will be read by CPB 
+          CPB_filename = "python_files/CPB_solo.py",  # Path to save the file
+          simtime = simtime,                          # Simulation time
+          plot = T)                                   # PLot or not the simulation
+#==================================================================================
+# Unleash CPlantBox
+CPlantBox(path_python3, "python_files/CPB_solo.py")
+#==================================================================================
+```
+
+This generates a single plant looking like that :
+
+![](figures/Plant.png){fig-align="center" width="335"}
+
+## Field
+
+Now we can assemble lots of plants to generate a virtual field. We can run either single date simulation or time series.
+
+#### For fixed time :
+
+```{r, eval = F}
+Write_CPB(type = "field",
+          param_filename = "Wheat.xml", 
+          CPB_filename = "python_files/CPB.py",
+          params_df = Params, 
+          export_path = "test/", 
+          sim_name = "Test", 
+          plot = T, # Plot the field 
+          vtp = T)  # Save in VTP the virtual field
+
+CPlantBox(path_python3, "python_files/CPB.py")
+```
+
+This generates a virtual field looking like that :
+
+![](figures/Field.png){fig-align="center"}
+
+You can visualize the field cloud points by loading vtp files in Paraview.
+
+#### For time series :
+
+```{r, eval=FALSE}
+# TIME SERIES
+Write_CPB(type = "field_TS", 
+          param_filename = "Wheat.xml", 
+          CPB_filename = "python_files/CPB_timeseries.py", 
+          params_df = Params, 
+          export_path = "test/", 
+          sim_name = "Test", 
+          plot = F,
+          vtp = T)
+
+CPlantBox(path_python3, "python_files/CPB_timeseries.py")
+```
+
+### Load results
+
+Results from CPlantBox are stored as point cloud in a csv file. This is a test simulation, just to show how it looks like.
+
+```{r}
+coords = read.csv("test/Test.csv") # Load the csv
+#==============================================================================
+result_map <- ggplot(data = coords) +
+  geom_point(aes(x = X, y = Y, color = Z), size = 0.01) +
+  coord_fixed() +
+  scale_color_viridis() +
+  theme_test()
+#==============================================================================
+result_map
+```
+
+For now, leaves are represented as points along the center line. CPlantBox do not allow yet to export points from leaves, but only polygons. Future work can be done here.
+
+# 3. EXTRACT ARTIFICIAL LiDAR METRICS
+
+With the following code, we apply algorithms to extract LiDAR metrics (Crop Height and Gap Fraction) from generated point cloud from CPlantBox.
+
+First we extract Crop Height (CH), Gap Fraction (GF) and Density from the point cloud, per grid cell :
+
+```{r, eval = T}
+source("R Functions/Extract_Metrics.R")
+Metrics <- Extract_Metrics(coords, gridsize = 20, method = "max") # Extract CH and GF
+```
+
+```{r, eval = T}
+hist(Metrics$CH)
+hist(Metrics$GF)
+hist(Metrics$Density)
+
+Grid_density <- ggplot(data = Metrics) +
+  geom_tile(aes(x = X, y = Y, fill = Density)) +
+  scale_color_viridis() +
+  scale_fill_viridis() +
+  coord_fixed() +
+  theme_test()
+
+Grid_GF <- ggplot(data = Metrics) +
+  geom_tile(aes(x = X, y = Y, fill = GF)) +
+  scale_color_viridis() +
+  scale_fill_viridis() +
+  coord_fixed() +
+  theme_test()
+
+Grid_CH <- ggplot(data = Metrics) +
+  geom_tile(aes(x = X, y = Y, fill = CH)) +
+  scale_color_viridis() +
+  scale_fill_viridis() +
+  coord_fixed() +
+  theme_test()
+
+Grid_density
+Grid_GF
+Grid_CH
+```
+
+Next we can also extract Gap Fraction per layers, similarly to how @bates_machine_2022 extracted Gap Fraction metrics from the point cloud.
+
+![](figures/Image3.png){fig-align="center"}
+
+```{r, eval = T}
+source("R Functions/Extract_GF_layers.R")
+GF_Layers <- Extract_GF_layers(coords, gridsize = 20, DT = 1, method = "mean", n_layers = 6)
+```
+
+We therefore extracted here Gap Fraction in 6 layers of 20cm height.
+
+```{r, eval = T}
+ggplot(data = GF_Layers) +
+  geom_tile(aes(x = X, y = Y, fill = GF)) +
+  scale_color_viridis() +
+  scale_fill_viridis() +
+  facet_wrap(~layer) +
+  coord_fixed() +
+  theme_test()
+```
+
+# 4. RUN & LOOP THROUGH PIPELINE
+
+Now that our functions are ready, we can loop the pipeline with different plant parameters.
+
+First we define our simulation parameters :
+
+```{r, eval=F}
+#==================================================================================
+# Setup
+#==================================================================================
+rm(list=ls())
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # Set working directory to the current file
+# DEFINE PATHS
+path_wheat <- "Wheat.xml"
+path_python3 <- "/home/mdago/anaconda3/envs/CPB/bin/python3"
+# path_python3 <- "/home/mdago/anaconda3/envs/CPB2/bin/python3"
+path_CPB <- "python_files/"
+path_R_functions <- "R Functions/"
+#==================================================================================
+fct <- list.files(path_R_functions, pattern = ".R")
+for(i in fct){
+  # print(paste0("R Functions/", i))
+  source(paste0(path_R_functions, i))
+}
+#==================================================================================
+# Set basic parameters
+#==================================================================================
+simtime = 140.
+# dx = 60.
+# N_iter = simtime/dx
+date = Sys.Date()
+param_file = path_wheat
+grid_size = 15
+#==================================================================================
+# Field parameters.
+#==================================================================================
+N_row = 18       # number of rows 
+N_col = 6       # number of columns
+N_plots = 2     # number of plots
+dist_col = 25   # distance between the root systems within a row [cm]
+dist_row = 25   # distance between crop row
+dist_plot = N_col*dist_row + 40 # distance between crop plot
+#==================================================================================
+# Plant parameters
+#==================================================================================
+# Stem
+stem_r = 5 # 1                  # stem growth rate
+stem_lmax = 100                 # stem max length
+stem_ln = 30                    # stem inter-lateral distance
+stem_theta = 0.1                # stem insertion angle
+# Tiller          
+maxTi = 5                       # max number of tillers
+# leaf
+leaf_lb = 8                     # basal length = 8
+leaf_la = 35                    # apical length = 35
+leaf_ln = 0                     # inter-lateral dist
+leaf_lmax = 43                  # max length
+leaf_r = 4                      # growth rate
+leaf_a = 0.1                    # radius
+leaf_Width_petiole = 0.35       # petiole width
+leaf_Width_blade = 0.9          # blad width
+leaf_shapeType = 2              # shape type
+leaf_tropismT = 1               # Tropism 1
+leaf_tropismN = 9.81            # Gravitropism
+leaf_tropismS = 0.1             # Tropism 2
+leaf_dx = 2                     # Axial Resolution
+leaf_dxMin = 1                  
+leaf_theta = 0.1
+leaf_rit = 1000000000
+leaf_gf = 3 # 3
+leaf_areaMax = 50
+leaf_geometryN = 100
+```
+
+Next, define what params and how you will make them change.
+
+In this code we made a sensitivity analysis of the effect of 3 plant parameters on LiDAR metrics :
+
+*sln* : stem inter-lateral distance, so the distance between two leaves. It is an interesting parameter since it will define the number of total leaves, and therefore is expected to influence Gap Fraction in different layers
+
+*max_t* : the maximum number of tillers. This is an interesting parameter to know in fields since it defines the devlopment stage of the plant, and is expected to greatly influence Gap Fraction through point density
+
+*s_r* : The stem growth rate. It is a very important physiological parameter and is expected to influence Crop Height.
+
+```{r, eval = F}
+# ======================================================================
+# Define parameters to loop
+# ======================================================================
+
+# Stem inter lateral distance
+sln <- round(runif(50, min = 5, max = 50), digits = 1) # stem inter-lat distance
+PS <- data.frame(stem_ln = sln)
+
+# Max number of tillers
+max_t <- round(runif(2, min = 1, max = 10), digits = 0)
+PS <- data.frame(seed_true_maxTi = max_t)
+
+# Stem Growth Rate
+sr <- round(runif(50, min = 1, max = 20), digits = 1)
+PS <- data.frame(stem_r = sr)
+```
+
+Run the PIPELINE. This creates a new directory in *results* folder, named with the date. Each simulation will be stored in this new file.
+
+```{r, eval=F}
+param_name <- "maxTi"   # Indicate here the parameter to vary (check chunk 16)
+CPB_filename <- "python_files/CPB.py"
+
+# RUN CPB LOOP
+source("CPB_LOOP.R")
+```
+
+In the next chunk we load each field simulation, and store it in a unique database : results_clean. This table contains, for each different field, a "map" of Gap Fraction, Crop Height and Density.
+
+To simplify this table and try to extract unique informations for each field, we constructed LiDAR *features*, that summarize each simulation with one value. The most obvious features are mean Gap Fraction and Crop Height per field. We also built "repartition" features, that are, for each field, counts of points between 4 quartiles. In addition, we extracted mean Gap Fraction values for 20 cm height layers.
+
+To summarize ; each field simulation is characterized by the plant input parameter, and 16 features values. These features values will become explaining variables when we will try to recover plant parameters from LiDAR data.
+
+```{r, eval = F}
+# =============================================================================
+dir_name <- "results/2023-12-14_1/" # Change the directory to last simulation
+# =============================================================================
+
+results <- read.csv(paste0(dir_name, "Results.csv"))
+GF_layers_all <- read.csv(paste0(dir_name, "GF_layers_all.csv"))
+simulation <- read.csv(paste0(dir_name, "Simulations.csv"))
+PS <- read.csv(paste0(dir_name, "Parametric_Space.csv"))
+colnames(PS)[2] <- "simulationID"
+
+# =============================================================================
+results_clean <- Make_Results(results, simulation, PS)
+# write.csv(results_clean, paste0(dir_name,"results_clean.csv"), row.names = F)
+# =============================================================================
+
+GF_features <- Make_GF_features(GF_layers_all, simulation, PS) # This takes lottttsss of time
+results_full <- left_join(results_clean, GF_features)
+
+write.csv(results_full, paste0(dir_name,"results_full.csv"), row.names = F)
+
+# EXPORT FULL SIMULATION RESULTS AS TABLE
+results_clean2 <- As_Database2(results_full)  # Extract Features
+write.csv(results_full, "results/Tillers.csv", row.names = F) # Change name of simulation here 
+```
+
+# 5. RESULTS ANALYSIS
+
+Once the simulations are done, we can load the data and analyse the sensitivity of LiDAR metrics to plant parameters.
+
+Resume of simulations :
+
+-   **2023-12-14_2** : Stem inter lateral distance - 50 simulations
+-   **2023-12-14_1** : leaf_width_blade - 50 simulations (not relevent because leaves are only characterized by the central line)
+-   **2023-11-24_1** : stem growth rate (stem_r) - 20 simulations
+-   **2023-11-06_2** : maximum number of tillers (seed_true_maxTi) - 100 simulations
+
+## Effect of the number or tillers
+
+The number of tillers has a great effect on LiDAR features, and clear trends are visibles (ex GF_layer6).
+
+```{r}
+Tillers <- read.csv("results/Tillers.csv")
+
+Tillers2 <- As_Database2(Tillers)
+pander(head(Tillers2))
+
+ggplot(data = Tillers2 %>%filter(features != "Mean_Density")) +
+  geom_point(aes(x = Pparams_values,
+                y = features_values
+                ))+
+  facet_wrap(~features, scales = "free_y") +
+  theme_test() + 
+  xlab("Number of tillers") +
+  ylab("Feature value") 
+
+corrplot::corrplot(cor(Tillers[,-c(1,2,3)]))
+```
+
+## Effect of stem inter lateral distance
+
+Stem inter-lateral distance seems to have effect on some features (e.g CHR2, GF_layer2), but not as strong as number of tillers.
+
+```{r}
+Stem_LN <- read.csv("results/Stem_Inter_Lateral_Distance.csv")
+Stem_LN2 <- As_Database2(Stem_LN)
+pander(head(Stem_LN2))
+
+# svg("plots/Results_all_stem_r.svg", height = 6, width = 10)
+ggplot(data = Stem_LN2 %>%filter(features != "Mean_Density")) +
+  geom_point(aes(x = Pparams_values,
+                y = features_values
+                ))+
+  facet_wrap(~features, scales = "free_y") +
+  theme_test() + 
+  xlab("Stem inter-lateral distance") +
+  ylab("Feature value") 
+# dev.off()
+
+corrplot::corrplot(cor(Stem_LN[,-c(1,2,3)]))
+```
+
+## Effect of stem growth rate
+
+The stem growth rate seems to be not very influent on LiDAR features.
+
+```{r}
+Stem_GR <- read.csv("results/Stem_Growth_Rate.csv")
+Stem_GR2 <- As_Database2(Stem_GR)
+# pander(head(Stem_GR2))
+
+# svg("plots/Results_all_stem_r.svg", height = 6, width = 10)
+ggplot(data = Stem_GR2 %>%filter(features != "Mean_Density")) +
+  geom_point(aes(x = Pparams_values,
+                y = features_values
+                ))+
+  facet_wrap(~features, scales = "free_y") +
+  theme_test() + 
+  xlab("Stem Growth Rate") +
+  ylab("Feature value") 
+# dev.off()
+
+corrplot::corrplot(cor(Stem_GR[,-c(1,2,3)]))
+```
+
+# 6. MACHINE LEARNING REGRESSION
+
+In this part we will focus on the effect of number of tillers on LiDAR features, and try to regress the plant param.
+
+We first split the data in Training set and Test set. We define data_clean as our database for the machine learning : we only keep the features and the plant param (we rename it "t" as target).
+
+```{r}
+set.seed(1) # For reprocucting random tirages
+
+data <- read.csv(file = "results/Tillers.csv")
+data_clean <- subset(data, select = c(4:21))          # take only explainable varaibles and target
+data_clean <- data_clean[sample(nrow(data_clean)), ]  # shuffle data
+colnames(data_clean)[12] <- "t"                       # set seed_true_maxTi as target
+data_clean <- subset(data_clean, select = -c(11))     # Remove Mean Density
+
+ratio <- 0.8                                          # Ratio train/test
+th <- round(ratio*nrow(data_clean))                   # threshold in data
+
+# Build sets and scale data. NB we scale test and train sets differently !
+train_set <- as.data.frame(scale(data_clean[1:th,]))  
+test_set <- as.data.frame(scale(data_clean[(th+1):nrow(data_clean),]))
+```
+
+## 0) Model Selection
+
+Before training models, we can try to find the best model to choose. We use here the *caret* library for model selection, and *neuralnet* package to build Neural Network regression.
+
+```{r, include=FALSE}
+# install.packages("caret")
+library(caret)
+library(neuralnet)
+```
+
+How to decide which feature will be actually used? We implement a recursive feature selection, where we make modes with different features and compare their importance with the test set.
+
+In rfeControl, we define the the type of algorithm (functions, here we apply linear functions) and cross validation method (method, here repeatedCV means K-Fold cross validation).
+
+```{r}
+subsets <- c(1:10) # here we indicate how much best features we want to keep at the time
+
+# Set parameters
+ctrl <- rfeControl(functions = lmFuncs, 
+                   method = "repeatedCV", # Cross validation function
+                   repeats = 2, 
+                   verbose = F)
+
+# Run K-Fold cross validation
+lmprofile <- rfe(x = subset(data_clean, select = -t), y = data_clean$t, 
+                 sizes = subsets,
+                 rfeControl = ctrl)
+
+# Print results
+lmprofile
+plot(lmprofile, type = c("g", "o"))
+lmprofile$optVariables[1:3]
+```
+
+So this analysis shows that with the top 3 variables we have a nice drop of RMSE : the 3 best variables are Mean_GF, GF_layer6 and GF_layer1
+
+## 1) Linear model
+
+We test here a very simple linear regression on GF_layer6 and GF_layer1.
+
+Results are satisfying : we have a $R^2 = 0.81$ .
+
+```{r}
+# Simple lm
+lm1 <- lm(data = train_set, formula = t ~ GF_layer6 + GF_layer1)
+pander(summary(lm1))
+visreg(lm1)
+```
+
+Let's see how it behaves on test set :
+
+```{r}
+Pred_lm = predict(lm1, newdata = test_set)
+Er_lm = RMSE(test_set$t, Pred_lm)
+Er_lm2 = SSE(test_set$t, Pred_lm)
+pander(paste0("RMSE : ", Er_lm, " | SSE : ", Er_lm2))
+
+ggplot(data.frame(true = test_set$t, pred = Pred_lm)) +
+  geom_point(aes(x = true, y = pred)) +
+  geom_abline() +
+  theme_bw()
+```
+
+We get a Root Mean Square Error of 0.437.
+
+## 2) Neural network
+
+We select here a neural network from *neuralnet* package, and we train it using *caret* :
+
+```{r}
+# Parametrize training
+fitControl <- trainControl(## 10-fold CV
+                           method = "repeatedcv",
+                           number = 10,
+                           ## repeated ten times
+                           repeats = 5)
+
+# Launch training of a NN on train set
+nn_fit1 <- train(t ~ .,
+                 data = train_set,
+                 method = "neuralnet",
+                 trControl = fitControl)
+
+# Print results of training
+nn_fit1
+```
+
+Let's see the results
+
+```{r, eval = T}
+# Predict response of test set
+NN_results1 <- predict(nn_fit1, test_set)
+
+# pred_df <- data.frame(NN = NN_results1, LM <- Pred_lm, true = test_set$t)
+pred_df <- data.frame(NN = NN_results1, LM <- Pred_lm, true = test_set$t)
+
+ggplot(pred_df) +
+  # geom_point(aes(x = true, y = LM), color = "blue") +
+  geom_point(aes(x = true, y = NN), color = "red") +
+  geom_abline() +
+  theme_bw()
+
+Er = RMSE(test_set$t, NN_results1)
+Er2 = SSE(test_set$t, NN_results1)
+print(paste0("RMSE : ", Er, " | SSE : ", Er2))
+```
+
+It is pretty good too.
+
+Finally, this is a short final chunk to run a NN mannually.
+
+```{r, include = T, eval = F}
+
+NN1 <- neuralnet(data = train_set, 
+                 formula = t ~ Mean_GF + Mean_CH + GFR2 + GFR1 + GF_layer6, 
+                 hidden = c(1), 
+                 rep = 20,
+                 lifesign = "none",
+                 lifesign.step = 2000, 
+                 algorithm = "backprop",
+                 threshold = 1,
+                 learningrate = 0.0001)
+
+NN_results1 <- predict(NN1, test_set)
+
+Er = RMSE(test_set$t, NN_results1)
+Er2 = SSE(test_set$t, NN_results1)
+print(paste0("RMSE : ", Er, " | SSE : ", Er2))
+```
+
+# Conclusion
+
+In this document, we provide a code pipeline to generate virtual fields using CPlantBox and extract artificial LiDAR metrics (Crop Height and Gap Fraction) from it. We also provide codes to build unique features from LiDAR metrics maps.
+
+We made a loop of the pipeline to study the sensitivity of LiDAR features to different plant parameters (namely stem growth rate, stem inter-lateral distance and maximum number of tillers). Our results show that the number of tillers greatly influence LiDAR features.
+
+In the last part, we tried to recover the number of tillers from LiDAR features using a linear regression and a neural network model. The results are promising, and call for further investigations, for example with more plant paremeters and more computing power. It would also be interesting to study the combined influence of plant parameters on LiDAR metrics.
+
+Despite the fact that our virtual plants and fields are not visually realistic, plant parameters and model still can be improved to increase the precision of representations.
+
+We show here a proof of concept that we can use structural modeling to help predicting plant status using LiDAR data. Such methodology could reduce the cost of destructive measurements and improve predictions on precise plant parameters.
+
+# Appendix : CPlantBox installation for our particular setup
+
+This project was implemented in Windows 10-11
+
+The R version is 4.3.2 (installed 22-12-2023) and RStudio version is 01-09-2023
+
+CPlantBox runs under Linux, so we needed to install a Windows Linux Subsystem. It is easy to install with [these instructions](https://learn.microsoft.com/en-us/windows/wsl/install).
+
+**1) Install and setup Anaconda in Linux**
+
+-   We downloaded Anaconda installation file [here](https://www.anaconda.com/download#downloads). We took the most recent file looking like *\[...\]linux-x86-64.sh*
+
+-   Put it in `$HOME` (your virtual Linux directory, something like \\wsl.localhost\Ubuntu\home )
+
+-   Open command prompt and run `wsl`
+
+-   Go to your Home directory : `$ cd $HOME`
+
+-   Run `bash [...]linux-x86-64.sh` with \[...\] the rest of your anaconda file. This install Anaconda to your linux subsystem
+
+-   Create an environment for CPlantBox :
+
+    -   `$ conda create -n CPB1 python=3.9`
+
+    -   `$ conda activate CPB1` or `$source activate CPB1`
+
+        -   NB : Make sure that the version of your new environment is the same as the one indicated in the file *plantbox.cpython-310-x86_64-linux-gnu.so* (here 3.10)
+
+**2) Install CPlantBox**
+
+-   Download CPlantBox source code. This pipeline uses the [2022 release](https://github.com/Plant-Root-Soil-Interactions-Modelling/CPlantBox/releases/tag/v1.1) [@schnepfa_plant-root-soil-interactions-modellingcplantbox_2022].
+-   Create a CPB folder and unzip the source code
+-   Open Prompt and launch WSL
+-   Check that the file *installCPlantBox.py* is in the directory
+-   Run `$ python3 installCPlantBox.py` This can be tricky, so don't hesitate to contact me or someone from the ROSI team. The installation can take a few minutes
+-   Once it is complete, try one example : `$ python3 CPB/CPlantBox/tutorial/examples/python/example_plant.py`
