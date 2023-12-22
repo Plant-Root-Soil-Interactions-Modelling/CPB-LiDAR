@@ -132,7 +132,9 @@ BBCH_scale <- read.csv("data/BBCH_scale.csv")
 
 ### Destructive data
 
-```{r, echo = F}
+See the work of Jordan Bates.
+
+```{r, echo = F, eval = F}
 biom <- ggplot(data = Biomass) +
   geom_line(aes(x = Date, y = Value, color = Organ)) +
   # geom_smooth(aes(x = Date, y = Value, color = Organ)) +
@@ -148,9 +150,7 @@ bbch <- ggplot(data = BBCH2) +
 plot_grid(biom, bbch, ncol = 1)
 ```
 
-### LiDAR data
-
-```{r, echo = F}
+```{r, echo = F, eval = F}
 GF_grid <- ggplot(data = LiDAR_metrics,
        aes(x = x-min(x), y = y-min(y), color = GF, fill = GF)) +
   #geom_point(size = , shape = 15) +
