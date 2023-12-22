@@ -11,13 +11,13 @@ bibliography: PHENOROB.bib
 ^*1*^*Agrosphere IBG3, Forschungszentrum Juelich, 52428 Juelich, Germany\
 ^2^Earth and Life Institute, UCLouvain, 1348 Louvain-la-Neuve, Belgium*
 
-This project was founded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany's Excellence Strategy-EXC 2070-390732324 (PhenoRob).
+This project was funded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany's Excellence Strategy-EXC 2070-390732324 (PhenoRob).
 
 ![](figures/logos.png){fig-align="center" width="200"}
 
 # INTRODUCTION
 
-Field monitoring using **unmanned aircraft systems** (UAS) is a new promising field of research that aims to retrieve plant information with higher spectral, temporal and spatial resolution than destructive measurements. In particular, measures with **LiDAR** (Light Detection And Ranging) sensors mounted on UAS are useful to characterize canopy, and are also promising to estimate strucutral plant parameters (ex LAI, biomass) [@bates_estimating_2021].
+Field monitoring using **unmanned aircraft systems** (UAS) is a new promising field of research that aims to retrieve plant information with higher spectral, temporal and spatial resolution than destructive measurements. In particular, measures with **LiDAR** (Light Detection And Ranging) sensors mounted on UAS are useful to characterize canopy, and are also promising to estimate structural plant parameters (ex LAI, biomass) [@bates_estimating_2021].
 
 Rough LiDAR data consists of a very dense point cloud of the field. With this point cloud, one can define a grid and apply algorithms to extract *metrics* : **Crop Heigh**t (indicator of height per gridcell), **Gap Fraction** (indicator of canopy density per grid cell) and **Intensity** (which will not be used here). Such metrics can next be correlated with destructive measurements, to build regressions to predict plant parameters from LiDAR data.
 
