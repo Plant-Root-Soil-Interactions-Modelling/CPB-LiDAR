@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.3.450">
+<meta name="generator" content="quarto-1.3.353">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -126,22 +126,22 @@ div.csl-indent {
 </div>
 <section id="introduction" class="level1">
 <h1>INTRODUCTION</h1>
-<p>Field monitoring using <strong>unmanned aircraft systems</strong> (UAS) is a new promising field of research that aims to retrieve plant information with higher spectral, temporal and spatial resolution than destructive measurements. In particular, measures with <strong>LiDAR</strong> (Light Detection And Ranging) sensors mounted on UAS are useful to characterize canopy, and are also promising to estimate structural plant parameters (ex LAI, biomass) <span class="citation" data-cites="bates_estimating_2021">(<a href="#ref-bates_estimating_2021" role="doc-biblioref">J. S. Bates et al. 2021</a>)</span>.</p>
-<p>Rough LiDAR data consists of a very dense point cloud of the field. With this point cloud, one can define a grid and apply algorithms to extract <em>metrics</em> : <strong>Crop Heigh</strong>t (indicator of height per gridcell), <strong>Gap Fraction</strong> (indicator of canopy density per grid cell) and <strong>Intensity</strong> (which will not be used here). Such metrics can next be correlated with destructive measurements, to build regressions to predict plant parameters from LiDAR data.</p>
+<p>Field monitoring using <strong>Unmanned Aircraft Systems</strong> (UAS) is a new promising field of research that aims to retrieve plant information with higher spectral, temporal and spatial resolution than destructive measurements. In particular, measures with <strong>LiDAR</strong> (Light Detection And Ranging) sensors mounted on UAS are useful to characterize canopy, and are also promising to estimate structural plant parameters (ex LAI, biomass) <span class="citation" data-cites="bates_estimating_2021">(<a href="#ref-bates_estimating_2021" role="doc-biblioref">J. S. Bates et al. 2021</a>)</span>.</p>
+<p>Rough LiDAR data consists of a very dense point cloud of the field. With this point cloud, one can define a grid and apply algorithms to extract <em>metrics</em> : <strong>Crop Heigh</strong>t (indicator of height per gridcell), <strong>Gap Fraction</strong> (indicator of canopy density per grid cell) and <strong>Intensity</strong> (which will not be used here). Such metrics can next be correlated with destructive measurements, to build regressions and predict plant parameters from LiDAR data.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="figures/Image1.png" class="img-fluid figure-img"></p>
 </figure>
 </div>
 <p>More specifically, <span class="citation" data-cites="bates_machine_2022">J. Bates et al. (<a href="#ref-bates_machine_2022" role="doc-biblioref">2022</a>)</span> used a neural network to predict field biomass from LiDAR metrics.</p>
-<p>In this project, we want to investigate the idea of using <a href="https://github.com/Plant-Root-Soil-Interactions-Modelling/CPlantBox/">CPlantBox</a> <span class="citation" data-cites="zhou2020">(<a href="#ref-zhou2020" role="doc-biblioref">Zhou et al. 2020</a>)</span>, a plant structural model, to emulate LiDAR field data, and find relations between LiDAR metrics and plant parameters. CPlantBox is a functional-structural plant model (FSPM) that can generate 3D plant architectures. CPlantBox generates individual plants, and it is possible to loop the process to generate a whole virtual field. Since these virtual fields are composed of nodes and segments, it would be theoritically possible to apply algorithms to extract artificial LiDAR data (Crop Height and Gap Fraction) from it. It would be next possible to loop this process with different sets of plant parameters, and study the sensistivity of artificial LiDAR metrics to these plant parameters. Finally, by inverting the process, it would be possible to build regressions of plant parameters from artificial LiDAR metrics, and therefore bring new insights on LiDAR-based plant status predictions.</p>
+<p>In this project, we want to investigate the idea of using <a href="https://github.com/Plant-Root-Soil-Interactions-Modelling/CPlantBox/">CPlantBox</a> <span class="citation" data-cites="zhou2020">(<a href="#ref-zhou2020" role="doc-biblioref">Zhou et al. 2020</a>)</span>, a plant structural model, to emulate LiDAR field data, and find relations between LiDAR metrics and plant parameters. CPlantBox is a functional-structural plant model (FSPM) that can generate 3D plant architectures. CPlantBox generates individual plants. In this work we implemented code to loop the process and generate a whole virtual field. Since these virtual fields are composed of nodes and segments, it is possible to apply algorithms to extract artificial LiDAR data (Crop Height and Gap Fraction) from it. It would be next possible to loop this process with different sets of plant parameters, and study the sensistivity of artificial LiDAR metrics to these plant parameters. Finally, by inverting the process, it would be possible to build regressions of plant parameters from artificial LiDAR metrics, and therefore bring new insights on LiDAR-based plant status predictions.</p>
 <p>The goals of this project are :</p>
 <ol type="1">
 <li><p><strong>Parametrize CPlantBox to generate pseudo-realistic wheat field with different sets of plant parameter</strong></p></li>
-<li><p><strong>Convert CPlantBox field simulation into LiDAR-like data (basically create artificial LiDAR metrics from CPlantBox field simulation).</strong></p></li>
+<li><p><strong>Convert CPlantBox field simulation into LiDAR-like data (basically create artificial LiDAR metrics from CPlantBox field simulations).</strong></p></li>
 <li><p><strong>Use machine learning techniques to retrieve plant parameters from artificial LiDAR metrics.</strong></p></li>
 </ol>
-<p>In this notebook we first present a code pipeline to generate CPlantBox-based virtual fields. Then we use functions to extract artificial LiDAR metrics (Crop Height and Gap Fraction) from the virtual fields. We loop this process to investigate the sensitivity of these LiDAR metrics to 3 plant parameters : stem growth rate, stem inter-lateral distance and number of tillers. At last, we test some simple machine learning methods (linear regression and neural network) to recover plant parameters from LiDAR metrics.</p>
+<p>In this notebook we first present a code pipeline to generate CPlantBox-based virtual fields. Then we use functions to extract artificial LiDAR metrics (Crop Height and Gap Fraction) from the virtual fields. We loop this process to investigate the sensitivity of these LiDAR metrics to 3 plant parameters : stem growth rate, stem inter-lateral distance and number of tillers. At last, we test some very simple machine learning methods (linear regression and neural network) to recover plant parameters from LiDAR metrics.</p>
 </section>
 <section id="set-up" class="level1">
 <h1>SET UP</h1>
@@ -152,17 +152,151 @@ div.csl-indent {
 <li><p><em>path_wheat</em> is the path to <em>Wheat.xml</em>, which is the parameter file read by CPlantBox to generate individual plants</p></li>
 <li><p><em>path_python3</em> is the path to anaconda python to run python files</p></li>
 <li><p><em>path_CPB</em> is the path to our python functions</p></li>
-<li><p><em>path_R_functions</em> is the path to utilitary functions for this notebook.</p></li>
+<li><p><em>path_R_functions</em> is the path to utilitarian functions for this notebook.</p></li>
 </ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list=</span><span class="fu">ls</span>()) <span class="co"># clean workspace</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # Set working directory to the current file</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># PLANT PARAM PATH</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>path_wheat <span class="ot">&lt;-</span> <span class="st">"Wheat.xml"</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># SET HERE YOUR PYTHON3 PATH</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># path_python3 &lt;- "/home/mdago/anaconda3/envs/CPB/bin/python3"</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>path_python3 <span class="ot">&lt;-</span> <span class="st">"/home/mdago/anaconda3/envs/CPB2/bin/python3"</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># PYTHON SCRIPTS PATH</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>path_CPB <span class="ot">&lt;-</span> <span class="st">"python_files/"</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># R SCRIPTS PATH</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>path_R_functions <span class="ot">&lt;-</span> <span class="st">"R Functions/"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 <p>Installation/loading of libraries :</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#==========================================================================</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>libs <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"fmsb"</span>, <span class="st">"SciViews"</span>, <span class="st">"pander"</span>, <span class="st">"visreg"</span>, <span class="st">"readxl"</span>, <span class="st">"EnvStats"</span>, <span class="st">"FactoMineR"</span>, <span class="st">"factoextra"</span>, <span class="st">"knitr"</span>, <span class="st">"data.table"</span>, <span class="st">"reticulate"</span>, <span class="st">"xml2"</span>, <span class="st">"tidyverse"</span>, <span class="st">"dplyr"</span>, <span class="st">"plyr"</span>, <span class="st">"viridis"</span>, <span class="st">"Hmisc"</span>, <span class="st">"ggplot2"</span>, <span class="st">"gridExtra"</span>, <span class="st">"ggpubr"</span>,<span class="st">"cowplot"</span>, <span class="st">"stats"</span>, <span class="st">"emmeans"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># "riot"</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">#==========================================================================</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(pk <span class="cf">in</span> libs) {</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">requireNamespace</span>(pk, <span class="at">quietly =</span> <span class="cn">TRUE</span>)) {</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># If not installed, install the package</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">install.packages</span>(pk)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">library</span>(pk, <span class="at">character.only =</span> T)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">#==========================================================================</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>fct <span class="ot">&lt;-</span> <span class="fu">list.files</span>(path_R_functions, <span class="at">pattern =</span> <span class="st">".R"</span>)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> fct){</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># print(paste0("R Functions/", i))</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">source</span>(<span class="fu">paste0</span>(path_R_functions, i))</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co">#==========================================================================</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co"># source("My_Neural_Network_functions.R")</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section>
 <section id="data-description" class="level1">
 <h1>1. DATA DESCRIPTION</h1>
 <p>The data used in this work is kindly provided by <strong>J. Bates, C. Montzka, R. Bajracharya and F. Jonard</strong>, and were collected during a flight campaign at the PhenoRob Central Experiment, Campus Klien Altendorf (CKA), Germany, in 2021. More specifically, we focus on one plot composed of 6 subplots of each 1.5 x 3 m. The team of J. Bates measured Crop Height (CH), Gap Fraction (GF) and Intensity (I) at 7 dates using LiDAR sensors mounted on UAS. They also took destructive measurements ; BBCH (development stage) and Biomass.</p>
-<p>We used these data only to compare and calibrate our simulations.</p>
+<p>We only used these data to compare and calibrate our simulations.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>files <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="at">path =</span> <span class="st">"data/LiDAR_Metrics/"</span>, <span class="at">pattern =</span> <span class="st">".csv"</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>LiDAR_metrics <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> files){</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(i)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  date_i <span class="ot">&lt;-</span> <span class="fu">as.Date</span>(<span class="fu">strsplit</span>(i, <span class="at">split =</span> <span class="st">"_"</span>)[[<span class="dv">1</span>]][<span class="dv">1</span>], <span class="at">format=</span><span class="st">"%Y%m%d"</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  file_i <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">paste0</span>(<span class="st">"data/LiDAR_Metrics/"</span>, i))</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  file_i<span class="sc">$</span>date <span class="ot">&lt;-</span> date_i</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  LiDAR_metrics <span class="ot">&lt;-</span> <span class="fu">rbind</span>(LiDAR_metrics, file_i)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "20210419_LiDAR_Metrics.csv"
+[1] "20210519_LiDAR_Metrics.csv"
+[1] "20210531_LiDAR_Metrics.csv"
+[1] "20210614_LiDAR_Metrics.csv"
+[1] "20210705_LiDAR_Metrics.csv"
+[1] "20210727_LiDAR_Metrics.csv"
+[1] "20210805_LiDAR_Metrics.csv"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>BBCH <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">date =</span> <span class="fu">unique</span>(LiDAR_metrics<span class="sc">$</span>date),</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">BBCH =</span> <span class="fu">c</span>(<span class="dv">28</span>, <span class="dv">33</span>, <span class="dv">36</span>, <span class="dv">61</span>, <span class="dv">76</span>, <span class="dv">87</span>, <span class="dv">90</span>))</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>Days <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">date =</span> <span class="fu">unique</span>(LiDAR_metrics<span class="sc">$</span>date),</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>                   <span class="at">day =</span> <span class="fu">as.numeric</span>(<span class="fu">as.Date</span>(<span class="fu">unique</span>(LiDAR_metrics<span class="sc">$</span>date)) <span class="sc">-</span> <span class="fu">as.Date</span>(<span class="st">"2020-11-16"</span>)))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>LiDAR_metrics <span class="ot">&lt;-</span> <span class="fu">inner_join</span>(LiDAR_metrics, BBCH, <span class="at">by =</span> <span class="st">"date"</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Read tables</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>BBCH2 <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="at">path =</span> <span class="st">"data/myCKA.xlsx"</span>, <span class="at">sheet =</span> <span class="st">"BBCH"</span>)  </span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>Biomass <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="at">path =</span> <span class="st">"data/myCKA.xlsx"</span>, <span class="at">sheet =</span> <span class="st">"biomass"</span>) </span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>BBCH_scale <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"data/BBCH_scale.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 <section id="destructive-data" class="level3">
 <h3 class="anchored" data-anchor-id="destructive-data">Destructive data</h3>
 <p>See the work of Jordan Bates.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>biom <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> Biomass) <span class="sc">+</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">x =</span> Date, <span class="at">y =</span> Value, <span class="at">color =</span> Organ)) <span class="sc">+</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># geom_smooth(aes(x = Date, y = Value, color = Organ)) +</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>Type) <span class="sc">+</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Biomass per organ"</span>) <span class="sc">+</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_test</span>()</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>bbch <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> BBCH2) <span class="sc">+</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">x =</span> Date, <span class="at">y =</span> BBCH)) <span class="sc">+</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Devlopment Stages"</span>) <span class="sc">+</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_test</span>()</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_grid</span>(biom, bbch, <span class="at">ncol =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>GF_grid <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> LiDAR_metrics,</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x =</span> x<span class="sc">-</span><span class="fu">min</span>(x), <span class="at">y =</span> y<span class="sc">-</span><span class="fu">min</span>(y), <span class="at">color =</span> GF, <span class="at">fill =</span> GF)) <span class="sc">+</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">#geom_point(size = , shape = 15) +</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>() <span class="sc">+</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_fixed</span>() <span class="sc">+</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_test</span>() <span class="sc">+</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_viridis</span>() <span class="sc">+</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis</span>() <span class="sc">+</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"x"</span>) <span class="sc">+</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"y"</span>) <span class="sc">+</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Gap Fraction"</span>) <span class="sc">+</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>date)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>CH_grid <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> LiDAR_metrics,</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x =</span> x<span class="sc">-</span><span class="fu">min</span>(x), <span class="at">y =</span> y<span class="sc">-</span><span class="fu">min</span>(y), <span class="at">color =</span> Height, <span class="at">fill =</span> Height)) <span class="sc">+</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># geom_point(size = 1, shape = 15) +</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>() <span class="sc">+</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_fixed</span>() <span class="sc">+</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_test</span>() <span class="sc">+</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_viridis</span>() <span class="sc">+</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis</span>() <span class="sc">+</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"x"</span>) <span class="sc">+</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"y"</span>) <span class="sc">+</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Crop Height"</span>) <span class="sc">+</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>date)</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>I_grid <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> LiDAR_metrics,</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x =</span> x<span class="sc">-</span><span class="fu">min</span>(x), <span class="at">y =</span> y<span class="sc">-</span><span class="fu">min</span>(y), <span class="at">color =</span> Intensity, <span class="at">fill =</span> Intensity)) <span class="sc">+</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>  <span class="co"># geom_point(size = 1, shape = 15) +</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>() <span class="sc">+</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_fixed</span>() <span class="sc">+</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_test</span>() <span class="sc">+</span></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_viridis</span>() <span class="sc">+</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis</span>() <span class="sc">+</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"x"</span>) <span class="sc">+</span></span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"y"</span>) <span class="sc">+</span></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Intensity"</span>) <span class="sc">+</span></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>date)</span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a><span class="co"># grid.arrange(GF_grid, CH_grid, I_grid, ncol =1)</span></span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>GF_grid</span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>CH_grid</span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>I_grid</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section>
 </section>
 <section id="cplantbox" class="level1">
@@ -174,74 +308,71 @@ div.csl-indent {
 <figcaption class="figure-caption">Example of virtual field generated with CPlantBox</figcaption>
 </figure>
 </div>
-<p>First we define all plant parameters of our field. We use a XML param file called <em>Wheat.xml</em> that will be read by CPlantBox. We update that file when we change params value. For these tests, results will be stored in Test folder.</p>
+<p>First we define all plant parameters of our field. We use a XML parameter file called <em>Wheat.xml</em> that will be read by CPlantBox. We update that file when we change parameters value. For these tests, results will be stored in <em>Test</em> folder.</p>
 <p>We add some new parameters in the XML that define the field we want to generate : number of rows, columns, plots, etc… These field parameters are not directly read by CPlantBox, but are inputs of custom scripts that loop CPlantBox to arrange individual plants in a field setup.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>simtime <span class="ot">=</span> <span class="fl">130.</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>dx <span class="ot">=</span> <span class="fl">10.</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>N_iter <span class="ot">=</span> simtime<span class="sc">/</span>dx</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>date <span class="ot">=</span> <span class="fu">Sys.Date</span>()</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>param_file <span class="ot">=</span> path_wheat</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>grid_size <span class="ot">=</span> <span class="dv">20</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Field parameters</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>N_row <span class="ot">=</span> <span class="dv">12</span>       <span class="co"># number of rows </span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>N_col <span class="ot">=</span> <span class="dv">6</span>       <span class="co"># number of columns</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>N_plots <span class="ot">=</span> <span class="dv">2</span>     <span class="co"># number of plots</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>dist_col <span class="ot">=</span> <span class="dv">25</span>   <span class="co"># distance between the root systems within a row [cm]</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>dist_row <span class="ot">=</span> <span class="dv">25</span>   <span class="co"># distance between crop row</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>dist_plot <span class="ot">=</span> N_col<span class="sc">*</span>dist_row <span class="sc">+</span> <span class="dv">40</span> <span class="co"># distance between crop plot</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Plant parameters</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="do">## Stem</span></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>stem_r <span class="ot">=</span> <span class="dv">10</span> <span class="co"># 1</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>stem_lmax <span class="ot">=</span> <span class="dv">100</span> </span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>stem_ln <span class="ot">=</span> <span class="dv">50</span></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>stem_theta <span class="ot">=</span> <span class="fl">0.1</span></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="do">## Tiller</span></span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>maxTi <span class="ot">=</span> <span class="dv">1</span></span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co"># other tiller parameters?  </span></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="do">## leaf</span></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>leaf_lb <span class="ot">=</span> <span class="dv">8</span>                     <span class="co"># basal length = 8</span></span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>leaf_la <span class="ot">=</span> <span class="dv">35</span>                    <span class="co"># apical length = 35</span></span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>leaf_ln <span class="ot">=</span> <span class="dv">0</span>                     <span class="co"># inter-lateral dist</span></span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>leaf_lmax <span class="ot">=</span> <span class="dv">43</span>                  <span class="co"># max length</span></span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>leaf_r <span class="ot">=</span> <span class="dv">4</span>                      <span class="co"># growth rate</span></span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>leaf_a <span class="ot">=</span> <span class="fl">0.1</span>                    <span class="co"># radius</span></span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>leaf_Width_petiole <span class="ot">=</span> <span class="fl">0.35</span>       <span class="co"># petiole width</span></span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>leaf_Width_blade <span class="ot">=</span> <span class="fl">1.5</span>          <span class="co"># blad width</span></span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>leaf_shapeType <span class="ot">=</span> <span class="dv">2</span>              <span class="co"># shape type</span></span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>leaf_tropismT <span class="ot">=</span> <span class="dv">1</span>               <span class="co"># Tropism 1</span></span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>leaf_tropismN <span class="ot">=</span> <span class="fl">9.81</span>            <span class="co"># Gravitropism</span></span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>leaf_tropismS <span class="ot">=</span> <span class="fl">0.1</span>             <span class="co"># Tropism 2</span></span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>leaf_dx <span class="ot">=</span> <span class="dv">2</span>                     <span class="co"># Axial Resolution</span></span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>leaf_dxMin <span class="ot">=</span> <span class="dv">1</span>                  </span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>leaf_theta <span class="ot">=</span> <span class="fl">0.1</span></span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>leaf_rit <span class="ot">=</span> <span class="dv">1000000000</span></span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>leaf_gf <span class="ot">=</span> <span class="dv">3</span> <span class="co"># 3</span></span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>leaf_areaMax <span class="ot">=</span> <span class="dv">100</span></span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>leaf_geometryN <span class="ot">=</span> <span class="dv">100</span></span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a><span class="co"># =================================================================================</span></span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="co"># SET PARAMS</span></span>
-<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a><span class="co"># =================================================================================</span></span>
-<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"R Functions/Write_Params.R"</span>)</span>
-<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>Param_ID <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"data/Param_ID.csv"</span>)</span>
-<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>Params <span class="ot">&lt;-</span> <span class="fu">CPB_read_params</span>(path_wheat)      <span class="co"># Read XML param file</span></span>
-<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>Params <span class="ot">&lt;-</span> <span class="fu">CPB_updateParams</span>(Params)         <span class="co"># Update the parameters</span></span>
-<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a><span class="fu">CPB_write_param</span>(Params, <span class="at">path =</span> path_wheat) <span class="co"># Write XML param file</span></span>
-<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>Params <span class="ot">&lt;-</span> <span class="fu">join</span>(Params, Param_ID)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Joining by: organ_type, organ_name, param_name, subType</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>Params <span class="ot">&lt;-</span> Params[<span class="fu">c</span>(<span class="st">"paramID"</span>, <span class="st">"param_value"</span>)]</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Params<span class="sc">$</span>simulationID <span class="ot">&lt;-</span> <span class="cn">NaN</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>simtime <span class="ot">=</span> <span class="fl">130.</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>dx <span class="ot">=</span> <span class="fl">10.</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>N_iter <span class="ot">=</span> simtime<span class="sc">/</span>dx</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>date <span class="ot">=</span> <span class="fu">Sys.Date</span>()</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>param_file <span class="ot">=</span> path_wheat</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>grid_size <span class="ot">=</span> <span class="dv">20</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Field parameters</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>N_row <span class="ot">=</span> <span class="dv">12</span>       <span class="co"># number of rows </span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>N_col <span class="ot">=</span> <span class="dv">6</span>       <span class="co"># number of columns</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>N_plots <span class="ot">=</span> <span class="dv">2</span>     <span class="co"># number of plots</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>dist_col <span class="ot">=</span> <span class="dv">25</span>   <span class="co"># distance between the root systems within a row [cm]</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>dist_row <span class="ot">=</span> <span class="dv">25</span>   <span class="co"># distance between crop row</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>dist_plot <span class="ot">=</span> N_col<span class="sc">*</span>dist_row <span class="sc">+</span> <span class="dv">40</span> <span class="co"># distance between crop plot</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Plant parameters</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="do">## Stem</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>stem_r <span class="ot">=</span> <span class="dv">10</span> <span class="co"># 1</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>stem_lmax <span class="ot">=</span> <span class="dv">100</span> </span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>stem_ln <span class="ot">=</span> <span class="dv">50</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>stem_theta <span class="ot">=</span> <span class="fl">0.1</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="do">## Tiller</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>maxTi <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a><span class="co"># other tiller parameters?  </span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a><span class="do">## leaf</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>leaf_lb <span class="ot">=</span> <span class="dv">8</span>                     <span class="co"># basal length = 8</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>leaf_la <span class="ot">=</span> <span class="dv">35</span>                    <span class="co"># apical length = 35</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>leaf_ln <span class="ot">=</span> <span class="dv">0</span>                     <span class="co"># inter-lateral dist</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>leaf_lmax <span class="ot">=</span> <span class="dv">43</span>                  <span class="co"># max length</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>leaf_r <span class="ot">=</span> <span class="dv">4</span>                      <span class="co"># growth rate</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>leaf_a <span class="ot">=</span> <span class="fl">0.1</span>                    <span class="co"># radius</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>leaf_Width_petiole <span class="ot">=</span> <span class="fl">0.35</span>       <span class="co"># petiole width</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>leaf_Width_blade <span class="ot">=</span> <span class="fl">1.5</span>          <span class="co"># blad width</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>leaf_shapeType <span class="ot">=</span> <span class="dv">2</span>              <span class="co"># shape type</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>leaf_tropismT <span class="ot">=</span> <span class="dv">1</span>               <span class="co"># Tropism 1</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>leaf_tropismN <span class="ot">=</span> <span class="fl">9.81</span>            <span class="co"># Gravitropism</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>leaf_tropismS <span class="ot">=</span> <span class="fl">0.1</span>             <span class="co"># Tropism 2</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>leaf_dx <span class="ot">=</span> <span class="dv">2</span>                     <span class="co"># Axial Resolution</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>leaf_dxMin <span class="ot">=</span> <span class="dv">1</span>                  </span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>leaf_theta <span class="ot">=</span> <span class="fl">0.1</span></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>leaf_rit <span class="ot">=</span> <span class="dv">1000000000</span></span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>leaf_gf <span class="ot">=</span> <span class="dv">3</span> <span class="co"># 3</span></span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>leaf_areaMax <span class="ot">=</span> <span class="dv">100</span></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>leaf_geometryN <span class="ot">=</span> <span class="dv">100</span></span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a><span class="co"># =================================================================================</span></span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a><span class="co"># SET PARAMS</span></span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a><span class="co"># =================================================================================</span></span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"R Functions/Write_Params.R"</span>)</span>
+<span id="cb8-54"><a href="#cb8-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a>Param_ID <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"data/Param_ID.csv"</span>)</span>
+<span id="cb8-56"><a href="#cb8-56" aria-hidden="true" tabindex="-1"></a>Params <span class="ot">&lt;-</span> <span class="fu">CPB_read_params</span>(path_wheat)      <span class="co"># Read XML param file</span></span>
+<span id="cb8-57"><a href="#cb8-57" aria-hidden="true" tabindex="-1"></a>Params <span class="ot">&lt;-</span> <span class="fu">CPB_updateParams</span>(Params)         <span class="co"># Update the parameters</span></span>
+<span id="cb8-58"><a href="#cb8-58" aria-hidden="true" tabindex="-1"></a><span class="fu">CPB_write_param</span>(Params, <span class="at">path =</span> path_wheat) <span class="co"># Write XML param file</span></span>
+<span id="cb8-59"><a href="#cb8-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-60"><a href="#cb8-60" aria-hidden="true" tabindex="-1"></a>Params <span class="ot">&lt;-</span> <span class="fu">join</span>(Params, Param_ID)</span>
+<span id="cb8-61"><a href="#cb8-61" aria-hidden="true" tabindex="-1"></a>Params <span class="ot">&lt;-</span> Params[<span class="fu">c</span>(<span class="st">"paramID"</span>, <span class="st">"param_value"</span>)]</span>
+<span id="cb8-62"><a href="#cb8-62" aria-hidden="true" tabindex="-1"></a>Params<span class="sc">$</span>simulationID <span class="ot">&lt;-</span> <span class="cn">NaN</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Once we defined our parameters, we write a CPlantBox python file containing instructions, that will be run in Linux subsystem.</p>
 <p>This is done with the function <em>Write_CPB</em>.</p>
@@ -250,17 +381,17 @@ div.csl-indent {
 <h2 class="anchored" data-anchor-id="solo-plant">Solo plant</h2>
 <p>With the following code, we run CPlantBox for one unique plant and plot the result.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Write CPB executable</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">Write_CPB</span>(<span class="at">type =</span> <span class="st">"solo"</span>,                              <span class="co"># To generate one plant</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>          <span class="at">param_filename =</span> <span class="st">"Wheat.xml"</span>,               <span class="co"># Will be read by CPB </span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>          <span class="at">CPB_filename =</span> <span class="st">"python_files/CPB_solo.py"</span>,  <span class="co"># Path to save the file</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>          <span class="at">simtime =</span> simtime,                          <span class="co"># Simulation time</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>          <span class="at">plot =</span> T)                                   <span class="co"># PLot or not the simulation</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Unleash CPlantBox</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="fu">CPlantBox</span>(path_python3, <span class="st">"python_files/CPB_solo.py"</span>)</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Write CPB executable</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">Write_CPB</span>(<span class="at">type =</span> <span class="st">"solo"</span>,                              <span class="co"># To generate one plant</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>          <span class="at">param_filename =</span> <span class="st">"Wheat.xml"</span>,               <span class="co"># Will be read by CPB </span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>          <span class="at">CPB_filename =</span> <span class="st">"python_files/CPB_solo.py"</span>,  <span class="co"># Path to save the file</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>          <span class="at">simtime =</span> simtime,                          <span class="co"># Simulation time</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>          <span class="at">plot =</span> T)                                   <span class="co"># PLot or not the simulation</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Unleash CPlantBox</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="fu">CPlantBox</span>(path_python3, <span class="st">"python_files/CPB_solo.py"</span>)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>This generates a single plant looking like that :</p>
 <div class="quarto-figure quarto-figure-center">
@@ -275,16 +406,16 @@ div.csl-indent {
 <section id="for-fixed-time" class="level4">
 <h4 class="anchored" data-anchor-id="for-fixed-time">For fixed time :</h4>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Write_CPB</span>(<span class="at">type =</span> <span class="st">"field"</span>,</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>          <span class="at">param_filename =</span> <span class="st">"Wheat.xml"</span>, </span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>          <span class="at">CPB_filename =</span> <span class="st">"python_files/CPB.py"</span>,</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>          <span class="at">params_df =</span> Params, </span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>          <span class="at">export_path =</span> <span class="st">"test/"</span>, </span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>          <span class="at">sim_name =</span> <span class="st">"Test"</span>, </span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>          <span class="at">plot =</span> T, <span class="co"># Plot the field </span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>          <span class="at">vtp =</span> T)  <span class="co"># Save in VTP the virtual field</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="fu">CPlantBox</span>(path_python3, <span class="st">"python_files/CPB.py"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Write_CPB</span>(<span class="at">type =</span> <span class="st">"field"</span>,</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>          <span class="at">param_filename =</span> <span class="st">"Wheat.xml"</span>, </span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>          <span class="at">CPB_filename =</span> <span class="st">"python_files/CPB.py"</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>          <span class="at">params_df =</span> Params, </span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>          <span class="at">export_path =</span> <span class="st">"test/"</span>, </span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>          <span class="at">sim_name =</span> <span class="st">"Test"</span>, </span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>          <span class="at">plot =</span> T, <span class="co"># Plot the field </span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>          <span class="at">vtp =</span> T)  <span class="co"># Save in VTP the virtual field</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="fu">CPlantBox</span>(path_python3, <span class="st">"python_files/CPB.py"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>This generates a virtual field looking like that :</p>
 <div class="quarto-figure quarto-figure-center">
@@ -297,26 +428,32 @@ div.csl-indent {
 <section id="for-time-series" class="level4">
 <h4 class="anchored" data-anchor-id="for-time-series">For time series :</h4>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># TIME SERIES</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Write_CPB</span>(<span class="at">type =</span> <span class="st">"field_TS"</span>, </span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>          <span class="at">param_filename =</span> <span class="st">"Wheat.xml"</span>, </span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>          <span class="at">CPB_filename =</span> <span class="st">"python_files/CPB_timeseries.py"</span>, </span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>          <span class="at">params_df =</span> Params, </span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>          <span class="at">export_path =</span> <span class="st">"test/"</span>, </span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>          <span class="at">sim_name =</span> <span class="st">"Test"</span>, </span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>          <span class="at">plot =</span> F,</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>          <span class="at">vtp =</span> T)</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="fu">CPlantBox</span>(path_python3, <span class="st">"python_files/CPB_timeseries.py"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># TIME SERIES</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Write_CPB</span>(<span class="at">type =</span> <span class="st">"field_TS"</span>, </span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>          <span class="at">param_filename =</span> <span class="st">"Wheat.xml"</span>, </span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>          <span class="at">CPB_filename =</span> <span class="st">"python_files/CPB_timeseries.py"</span>, </span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>          <span class="at">params_df =</span> Params, </span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>          <span class="at">export_path =</span> <span class="st">"test/"</span>, </span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>          <span class="at">sim_name =</span> <span class="st">"Test"</span>, </span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>          <span class="at">plot =</span> F,</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>          <span class="at">vtp =</span> T)</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="fu">CPlantBox</span>(path_python3, <span class="st">"python_files/CPB_timeseries.py"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="load-results" class="level3">
 <h3 class="anchored" data-anchor-id="load-results">Load results</h3>
 <p>Results from CPlantBox are stored as point cloud in a csv file. This is a test simulation, just to show how it looks like.</p>
 <div class="cell">
-<div class="cell-output-display">
-<p><img src="CPB-LiDAR-PROJECT_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid" width="672"></p>
-</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>coords <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"test/Test.csv"</span>) <span class="co"># Load the csv</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co">#==============================================================================</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>result_map <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> coords) <span class="sc">+</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> X, <span class="at">y =</span> Y, <span class="at">color =</span> Z), <span class="at">size =</span> <span class="fl">0.01</span>) <span class="sc">+</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_fixed</span>() <span class="sc">+</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_viridis</span>() <span class="sc">+</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_test</span>()</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co">#==============================================================================</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>result_map</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>For now, leaves are represented as points along the center line. CPlantBox do not allow yet to export points from leaves, but only polygons. Future work can be done here.</p>
 </section>
@@ -327,12 +464,55 @@ div.csl-indent {
 <p>With the following code, we apply algorithms to extract LiDAR metrics (Crop Height and Gap Fraction) from generated point cloud from CPlantBox.</p>
 <p>First we extract Crop Height (CH), Gap Fraction (GF) and Density from the point cloud, per grid cell :</p>
 <div class="cell">
-<div class="cell-output-display">
-<p><img src="CPB-LiDAR-PROJECT_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid" width="672"></p>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"R Functions/Extract_Metrics.R"</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>Metrics <span class="ot">&lt;-</span> <span class="fu">Extract_Metrics</span>(coords, <span class="at">gridsize =</span> <span class="dv">20</span>, <span class="at">method =</span> <span class="st">"max"</span>) <span class="co"># Extract CH and GF</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell-output-display">
-<p><img src="CPB-LiDAR-PROJECT_files/figure-html/unnamed-chunk-12-2.png" class="img-fluid" width="672"></p>
-</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>h1 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> Metrics) <span class="sc">+</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x =</span> CH), <span class="at">bins =</span> <span class="dv">20</span>) <span class="sc">+</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Crop Height"</span>) <span class="sc">+</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Count"</span>) <span class="sc">+</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Crop Height Distribution"</span>) <span class="sc">+</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>h2 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> Metrics) <span class="sc">+</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x =</span> GF), <span class="at">bins =</span> <span class="dv">20</span>) <span class="sc">+</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Gap Fraction"</span>) <span class="sc">+</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Count"</span>) <span class="sc">+</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Gap Fraction Distribution"</span>) <span class="sc">+</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>h3 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> Metrics) <span class="sc">+</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x =</span> GF), <span class="at">bins =</span> <span class="dv">20</span>) <span class="sc">+</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Density"</span>) <span class="sc">+</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Count"</span>) <span class="sc">+</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Denstity Distribution"</span>) <span class="sc">+</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_grid</span>(h1, h2, h3)</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>Grid_density <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> Metrics) <span class="sc">+</span></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="fu">aes</span>(<span class="at">x =</span> X, <span class="at">y =</span> Y, <span class="at">fill =</span> Density)) <span class="sc">+</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_viridis</span>() <span class="sc">+</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis</span>() <span class="sc">+</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_fixed</span>() <span class="sc">+</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_test</span>()</span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>Grid_GF <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> Metrics) <span class="sc">+</span></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="fu">aes</span>(<span class="at">x =</span> X, <span class="at">y =</span> Y, <span class="at">fill =</span> GF)) <span class="sc">+</span></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_viridis</span>() <span class="sc">+</span></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis</span>() <span class="sc">+</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_fixed</span>() <span class="sc">+</span></span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_test</span>()</span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>Grid_CH <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> Metrics) <span class="sc">+</span></span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="fu">aes</span>(<span class="at">x =</span> X, <span class="at">y =</span> Y, <span class="at">fill =</span> CH)) <span class="sc">+</span></span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_viridis</span>() <span class="sc">+</span></span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis</span>() <span class="sc">+</span></span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_fixed</span>() <span class="sc">+</span></span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_test</span>()</span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_grid</span>(Grid_density, Grid_GF, Grid_CH)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next we can also extract Gap Fraction per layers, similarly to how <span class="citation" data-cites="bates_machine_2022">J. Bates et al. (<a href="#ref-bates_machine_2022" role="doc-biblioref">2022</a>)</span> extracted Gap Fraction metrics from the point cloud.</p>
 <div class="quarto-figure quarto-figure-center">
@@ -340,11 +520,20 @@ div.csl-indent {
 <p><img src="figures/Image3.png" class="img-fluid figure-img"></p>
 </figure>
 </div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"R Functions/Extract_GF_layers.R"</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>GF_Layers <span class="ot">&lt;-</span> <span class="fu">Extract_GF_layers</span>(coords, <span class="at">gridsize =</span> <span class="dv">20</span>, <span class="at">DT =</span> <span class="dv">1</span>, <span class="at">method =</span> <span class="st">"mean"</span>, <span class="at">n_layers =</span> <span class="dv">6</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 <p>We therefore extracted here Gap Fraction in 6 layers of 20cm height.</p>
 <div class="cell">
-<div class="cell-output-display">
-<p><img src="CPB-LiDAR-PROJECT_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid" width="672"></p>
-</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> GF_Layers) <span class="sc">+</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="fu">aes</span>(<span class="at">x =</span> X, <span class="at">y =</span> Y, <span class="at">fill =</span> GF)) <span class="sc">+</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_viridis</span>() <span class="sc">+</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis</span>() <span class="sc">+</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>layer) <span class="sc">+</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_fixed</span>() <span class="sc">+</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Layers of Gap Fraction"</span>) <span class="sc">+</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_test</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="run-loop-through-pipeline" class="level1">
@@ -352,105 +541,132 @@ div.csl-indent {
 <p>Now that our functions are ready, we can loop the pipeline with different plant parameters.</p>
 <p>First we define our simulation parameters :</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Setup</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list=</span><span class="fu">ls</span>())</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="fu">dirname</span>(rstudioapi<span class="sc">::</span><span class="fu">getActiveDocumentContext</span>()<span class="sc">$</span>path)) <span class="co"># Set working directory to the current file</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"># DEFINE PATHS</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>path_wheat <span class="ot">&lt;-</span> <span class="st">"Wheat.xml"</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>path_python3 <span class="ot">&lt;-</span> <span class="st">"/home/mdago/anaconda3/envs/CPB/bin/python3"</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co"># path_python3 &lt;- "/home/mdago/anaconda3/envs/CPB2/bin/python3"</span></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>path_CPB <span class="ot">&lt;-</span> <span class="st">"python_files/"</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>path_R_functions <span class="ot">&lt;-</span> <span class="st">"R Functions/"</span></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>fct <span class="ot">&lt;-</span> <span class="fu">list.files</span>(path_R_functions, <span class="at">pattern =</span> <span class="st">".R"</span>)</span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> fct){</span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># print(paste0("R Functions/", i))</span></span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">source</span>(<span class="fu">paste0</span>(path_R_functions, i))</span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Set basic parameters</span></span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>simtime <span class="ot">=</span> <span class="fl">140.</span></span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="co"># dx = 60.</span></span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="co"># N_iter = simtime/dx</span></span>
-<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>date <span class="ot">=</span> <span class="fu">Sys.Date</span>()</span>
-<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>param_file <span class="ot">=</span> path_wheat</span>
-<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>grid_size <span class="ot">=</span> <span class="dv">15</span></span>
-<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Field parameters.</span></span>
-<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>N_row <span class="ot">=</span> <span class="dv">18</span>       <span class="co"># number of rows </span></span>
-<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>N_col <span class="ot">=</span> <span class="dv">6</span>       <span class="co"># number of columns</span></span>
-<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>N_plots <span class="ot">=</span> <span class="dv">2</span>     <span class="co"># number of plots</span></span>
-<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>dist_col <span class="ot">=</span> <span class="dv">25</span>   <span class="co"># distance between the root systems within a row [cm]</span></span>
-<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>dist_row <span class="ot">=</span> <span class="dv">25</span>   <span class="co"># distance between crop row</span></span>
-<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>dist_plot <span class="ot">=</span> N_col<span class="sc">*</span>dist_row <span class="sc">+</span> <span class="dv">40</span> <span class="co"># distance between crop plot</span></span>
-<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Plant parameters</span></span>
-<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
-<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a><span class="co"># Stem</span></span>
-<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>stem_r <span class="ot">=</span> <span class="dv">5</span> <span class="co"># 1                  # stem growth rate</span></span>
-<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>stem_lmax <span class="ot">=</span> <span class="dv">100</span>                 <span class="co"># stem max length</span></span>
-<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>stem_ln <span class="ot">=</span> <span class="dv">30</span>                    <span class="co"># stem inter-lateral distance</span></span>
-<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>stem_theta <span class="ot">=</span> <span class="fl">0.1</span>                <span class="co"># stem insertion angle</span></span>
-<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a><span class="co"># Tiller          </span></span>
-<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>maxTi <span class="ot">=</span> <span class="dv">5</span>                       <span class="co"># max number of tillers</span></span>
-<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a><span class="co"># leaf</span></span>
-<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>leaf_lb <span class="ot">=</span> <span class="dv">8</span>                     <span class="co"># basal length = 8</span></span>
-<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>leaf_la <span class="ot">=</span> <span class="dv">35</span>                    <span class="co"># apical length = 35</span></span>
-<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>leaf_ln <span class="ot">=</span> <span class="dv">0</span>                     <span class="co"># inter-lateral dist</span></span>
-<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>leaf_lmax <span class="ot">=</span> <span class="dv">43</span>                  <span class="co"># max length</span></span>
-<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>leaf_r <span class="ot">=</span> <span class="dv">4</span>                      <span class="co"># growth rate</span></span>
-<span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>leaf_a <span class="ot">=</span> <span class="fl">0.1</span>                    <span class="co"># radius</span></span>
-<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a>leaf_Width_petiole <span class="ot">=</span> <span class="fl">0.35</span>       <span class="co"># petiole width</span></span>
-<span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>leaf_Width_blade <span class="ot">=</span> <span class="fl">0.9</span>          <span class="co"># blad width</span></span>
-<span id="cb7-55"><a href="#cb7-55" aria-hidden="true" tabindex="-1"></a>leaf_shapeType <span class="ot">=</span> <span class="dv">2</span>              <span class="co"># shape type</span></span>
-<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a>leaf_tropismT <span class="ot">=</span> <span class="dv">1</span>               <span class="co"># Tropism 1</span></span>
-<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a>leaf_tropismN <span class="ot">=</span> <span class="fl">9.81</span>            <span class="co"># Gravitropism</span></span>
-<span id="cb7-58"><a href="#cb7-58" aria-hidden="true" tabindex="-1"></a>leaf_tropismS <span class="ot">=</span> <span class="fl">0.1</span>             <span class="co"># Tropism 2</span></span>
-<span id="cb7-59"><a href="#cb7-59" aria-hidden="true" tabindex="-1"></a>leaf_dx <span class="ot">=</span> <span class="dv">2</span>                     <span class="co"># Axial Resolution</span></span>
-<span id="cb7-60"><a href="#cb7-60" aria-hidden="true" tabindex="-1"></a>leaf_dxMin <span class="ot">=</span> <span class="dv">1</span>                  </span>
-<span id="cb7-61"><a href="#cb7-61" aria-hidden="true" tabindex="-1"></a>leaf_theta <span class="ot">=</span> <span class="fl">0.1</span></span>
-<span id="cb7-62"><a href="#cb7-62" aria-hidden="true" tabindex="-1"></a>leaf_rit <span class="ot">=</span> <span class="dv">1000000000</span></span>
-<span id="cb7-63"><a href="#cb7-63" aria-hidden="true" tabindex="-1"></a>leaf_gf <span class="ot">=</span> <span class="dv">3</span> <span class="co"># 3</span></span>
-<span id="cb7-64"><a href="#cb7-64" aria-hidden="true" tabindex="-1"></a>leaf_areaMax <span class="ot">=</span> <span class="dv">50</span></span>
-<span id="cb7-65"><a href="#cb7-65" aria-hidden="true" tabindex="-1"></a>leaf_geometryN <span class="ot">=</span> <span class="dv">100</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Setup</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list=</span><span class="fu">ls</span>())</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="fu">dirname</span>(rstudioapi<span class="sc">::</span><span class="fu">getActiveDocumentContext</span>()<span class="sc">$</span>path)) <span class="co"># Set working directory to the current file</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co"># DEFINE PATHS</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>path_wheat <span class="ot">&lt;-</span> <span class="st">"Wheat.xml"</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>path_python3 <span class="ot">&lt;-</span> <span class="st">"/home/mdago/anaconda3/envs/CPB/bin/python3"</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co"># path_python3 &lt;- "/home/mdago/anaconda3/envs/CPB2/bin/python3"</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>path_CPB <span class="ot">&lt;-</span> <span class="st">"python_files/"</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>path_R_functions <span class="ot">&lt;-</span> <span class="st">"R Functions/"</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>fct <span class="ot">&lt;-</span> <span class="fu">list.files</span>(path_R_functions, <span class="at">pattern =</span> <span class="st">".R"</span>)</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> fct){</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># print(paste0("R Functions/", i))</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">source</span>(<span class="fu">paste0</span>(path_R_functions, i))</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Set basic parameters</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>simtime <span class="ot">=</span> <span class="fl">140.</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a><span class="co"># dx = 60.</span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a><span class="co"># N_iter = simtime/dx</span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>date <span class="ot">=</span> <span class="fu">Sys.Date</span>()</span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>param_file <span class="ot">=</span> path_wheat</span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>grid_size <span class="ot">=</span> <span class="dv">15</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Field parameters.</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>N_row <span class="ot">=</span> <span class="dv">18</span>       <span class="co"># number of rows </span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>N_col <span class="ot">=</span> <span class="dv">6</span>       <span class="co"># number of columns</span></span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>N_plots <span class="ot">=</span> <span class="dv">2</span>     <span class="co"># number of plots</span></span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>dist_col <span class="ot">=</span> <span class="dv">25</span>   <span class="co"># distance between the root systems within a row [cm]</span></span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a>dist_row <span class="ot">=</span> <span class="dv">25</span>   <span class="co"># distance between crop row</span></span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a>dist_plot <span class="ot">=</span> N_col<span class="sc">*</span>dist_row <span class="sc">+</span> <span class="dv">40</span> <span class="co"># distance between crop plot</span></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Plant parameters</span></span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a><span class="co">#==================================================================================</span></span>
+<span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a><span class="co"># Stem</span></span>
+<span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a>stem_r <span class="ot">=</span> <span class="dv">5</span> <span class="co"># 1                  # stem growth rate</span></span>
+<span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a>stem_lmax <span class="ot">=</span> <span class="dv">100</span>                 <span class="co"># stem max length</span></span>
+<span id="cb17-42"><a href="#cb17-42" aria-hidden="true" tabindex="-1"></a>stem_ln <span class="ot">=</span> <span class="dv">30</span>                    <span class="co"># stem inter-lateral distance</span></span>
+<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a>stem_theta <span class="ot">=</span> <span class="fl">0.1</span>                <span class="co"># stem insertion angle</span></span>
+<span id="cb17-44"><a href="#cb17-44" aria-hidden="true" tabindex="-1"></a><span class="co"># Tiller          </span></span>
+<span id="cb17-45"><a href="#cb17-45" aria-hidden="true" tabindex="-1"></a>maxTi <span class="ot">=</span> <span class="dv">5</span>                       <span class="co"># max number of tillers</span></span>
+<span id="cb17-46"><a href="#cb17-46" aria-hidden="true" tabindex="-1"></a><span class="co"># leaf</span></span>
+<span id="cb17-47"><a href="#cb17-47" aria-hidden="true" tabindex="-1"></a>leaf_lb <span class="ot">=</span> <span class="dv">8</span>                     <span class="co"># basal length = 8</span></span>
+<span id="cb17-48"><a href="#cb17-48" aria-hidden="true" tabindex="-1"></a>leaf_la <span class="ot">=</span> <span class="dv">35</span>                    <span class="co"># apical length = 35</span></span>
+<span id="cb17-49"><a href="#cb17-49" aria-hidden="true" tabindex="-1"></a>leaf_ln <span class="ot">=</span> <span class="dv">0</span>                     <span class="co"># inter-lateral dist</span></span>
+<span id="cb17-50"><a href="#cb17-50" aria-hidden="true" tabindex="-1"></a>leaf_lmax <span class="ot">=</span> <span class="dv">43</span>                  <span class="co"># max length</span></span>
+<span id="cb17-51"><a href="#cb17-51" aria-hidden="true" tabindex="-1"></a>leaf_r <span class="ot">=</span> <span class="dv">4</span>                      <span class="co"># growth rate</span></span>
+<span id="cb17-52"><a href="#cb17-52" aria-hidden="true" tabindex="-1"></a>leaf_a <span class="ot">=</span> <span class="fl">0.1</span>                    <span class="co"># radius</span></span>
+<span id="cb17-53"><a href="#cb17-53" aria-hidden="true" tabindex="-1"></a>leaf_Width_petiole <span class="ot">=</span> <span class="fl">0.35</span>       <span class="co"># petiole width</span></span>
+<span id="cb17-54"><a href="#cb17-54" aria-hidden="true" tabindex="-1"></a>leaf_Width_blade <span class="ot">=</span> <span class="fl">0.9</span>          <span class="co"># blad width</span></span>
+<span id="cb17-55"><a href="#cb17-55" aria-hidden="true" tabindex="-1"></a>leaf_shapeType <span class="ot">=</span> <span class="dv">2</span>              <span class="co"># shape type</span></span>
+<span id="cb17-56"><a href="#cb17-56" aria-hidden="true" tabindex="-1"></a>leaf_tropismT <span class="ot">=</span> <span class="dv">1</span>               <span class="co"># Tropism 1</span></span>
+<span id="cb17-57"><a href="#cb17-57" aria-hidden="true" tabindex="-1"></a>leaf_tropismN <span class="ot">=</span> <span class="fl">9.81</span>            <span class="co"># Gravitropism</span></span>
+<span id="cb17-58"><a href="#cb17-58" aria-hidden="true" tabindex="-1"></a>leaf_tropismS <span class="ot">=</span> <span class="fl">0.1</span>             <span class="co"># Tropism 2</span></span>
+<span id="cb17-59"><a href="#cb17-59" aria-hidden="true" tabindex="-1"></a>leaf_dx <span class="ot">=</span> <span class="dv">2</span>                     <span class="co"># Axial Resolution</span></span>
+<span id="cb17-60"><a href="#cb17-60" aria-hidden="true" tabindex="-1"></a>leaf_dxMin <span class="ot">=</span> <span class="dv">1</span>                  </span>
+<span id="cb17-61"><a href="#cb17-61" aria-hidden="true" tabindex="-1"></a>leaf_theta <span class="ot">=</span> <span class="fl">0.1</span></span>
+<span id="cb17-62"><a href="#cb17-62" aria-hidden="true" tabindex="-1"></a>leaf_rit <span class="ot">=</span> <span class="dv">1000000000</span></span>
+<span id="cb17-63"><a href="#cb17-63" aria-hidden="true" tabindex="-1"></a>leaf_gf <span class="ot">=</span> <span class="dv">3</span> <span class="co"># 3</span></span>
+<span id="cb17-64"><a href="#cb17-64" aria-hidden="true" tabindex="-1"></a>leaf_areaMax <span class="ot">=</span> <span class="dv">50</span></span>
+<span id="cb17-65"><a href="#cb17-65" aria-hidden="true" tabindex="-1"></a>leaf_geometryN <span class="ot">=</span> <span class="dv">100</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, define what params and how you will make them change.</p>
 <p>In this code we made a sensitivity analysis of the effect of 3 plant parameters on LiDAR metrics :</p>
-<p><em>sln</em> : stem inter-lateral distance, so the distance between two leaves. It is an interesting parameter since it will define the number of total leaves, and therefore is expected to influence Gap Fraction in different layers</p>
-<p><em>max_t</em> : the maximum number of tillers. This is an interesting parameter to know in fields since it defines the devlopment stage of the plant, and is expected to greatly influence Gap Fraction through point density</p>
-<p><em>s_r</em> : The stem growth rate. It is a very important physiological parameter and is expected to influence Crop Height.</p>
+<ul>
+<li><p><em>sln</em> : stem inter-lateral distance, so the distance between two leaves. It is an interesting parameter since it will define the number of total leaves, and therefore is expected to influence Gap Fraction in different layers</p></li>
+<li><p><em>max_t</em> : the maximum number of tillers. This is an interesting parameter to know in fields since it defines the devlopment stage of the plant, and is expected to greatly influence Gap Fraction through point density</p></li>
+<li><p><em>s_r</em> : The stem growth rate. It is a very important physiological parameter and is expected to influence Crop Height.</p></li>
+</ul>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ======================================================================</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Define parameters to loop</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ======================================================================</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Stem inter lateral distance</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>sln <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">runif</span>(<span class="dv">50</span>, <span class="at">min =</span> <span class="dv">5</span>, <span class="at">max =</span> <span class="dv">50</span>), <span class="at">digits =</span> <span class="dv">1</span>) <span class="co"># stem inter-lat distance</span></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>PS <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">stem_ln =</span> sln)</span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Max number of tillers</span></span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>max_t <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">runif</span>(<span class="dv">2</span>, <span class="at">min =</span> <span class="dv">1</span>, <span class="at">max =</span> <span class="dv">10</span>), <span class="at">digits =</span> <span class="dv">0</span>)</span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>PS <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">seed_true_maxTi =</span> max_t)</span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Stem Growth Rate</span></span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>sr <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">runif</span>(<span class="dv">50</span>, <span class="at">min =</span> <span class="dv">1</span>, <span class="at">max =</span> <span class="dv">20</span>), <span class="at">digits =</span> <span class="dv">1</span>)</span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>PS <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">stem_r =</span> sr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ======================================================================</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Define parameters to loop</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ======================================================================</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Stem inter lateral distance</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>sln <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">runif</span>(<span class="dv">50</span>, <span class="at">min =</span> <span class="dv">5</span>, <span class="at">max =</span> <span class="dv">50</span>), <span class="at">digits =</span> <span class="dv">1</span>) <span class="co"># stem inter-lat distance</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>PS <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">stem_ln =</span> sln)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Max number of tillers</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>max_t <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">runif</span>(<span class="dv">2</span>, <span class="at">min =</span> <span class="dv">1</span>, <span class="at">max =</span> <span class="dv">10</span>), <span class="at">digits =</span> <span class="dv">0</span>)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>PS <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">seed_true_maxTi =</span> max_t)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Stem Growth Rate</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>sr <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">runif</span>(<span class="dv">50</span>, <span class="at">min =</span> <span class="dv">1</span>, <span class="at">max =</span> <span class="dv">20</span>), <span class="at">digits =</span> <span class="dv">1</span>)</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>PS <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">stem_r =</span> sr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Run the PIPELINE. This creates a new directory in <em>results</em> folder, named with the date. Each simulation will be stored in this new file.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>param_name <span class="ot">&lt;-</span> <span class="st">"maxTi"</span>   <span class="co"># Indicate here the parameter to vary (check chunk 16)</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>CPB_filename <span class="ot">&lt;-</span> <span class="st">"python_files/CPB.py"</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># RUN CPB LOOP</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"CPB_LOOP.R"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>param_name <span class="ot">&lt;-</span> <span class="st">"maxTi"</span>   <span class="co"># Indicate here the parameter to vary (check chunk 16)</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>CPB_filename <span class="ot">&lt;-</span> <span class="st">"python_files/CPB.py"</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co"># RUN CPB LOOP</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"CPB_LOOP.R"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>In the next chunk we load each field simulation, and store it in a unique database : results_clean. This table contains, for each different field, a “map” of Gap Fraction, Crop Height and Density.</p>
 <p>To simplify this table and try to extract unique informations for each field, we constructed LiDAR <em>features</em>, that summarize each simulation with one value. The most obvious features are mean Gap Fraction and Crop Height per field. We also built “repartition” features, that are, for each field, counts of points between 4 quartiles. In addition, we extracted mean Gap Fraction values for 20 cm height layers.</p>
 <p>To summarize ; each field simulation is characterized by the plant input parameter, and 16 features values. These features values will become explaining variables when we will try to recover plant parameters from LiDAR data.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>dir_name <span class="ot">&lt;-</span> <span class="st">"results/2023-12-14_1/"</span> <span class="co"># Change the directory to last simulation</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">paste0</span>(dir_name, <span class="st">"Results.csv"</span>))</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>GF_layers_all <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">paste0</span>(dir_name, <span class="st">"GF_layers_all.csv"</span>))</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>simulation <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">paste0</span>(dir_name, <span class="st">"Simulations.csv"</span>))</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>PS <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">paste0</span>(dir_name, <span class="st">"Parametric_Space.csv"</span>))</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(PS)[<span class="dv">2</span>] <span class="ot">&lt;-</span> <span class="st">"simulationID"</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>results_clean <span class="ot">&lt;-</span> <span class="fu">Make_Results</span>(results, simulation, PS)</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="co"># write.csv(results_clean, paste0(dir_name,"results_clean.csv"), row.names = F)</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="co"># =============================================================================</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>GF_features <span class="ot">&lt;-</span> <span class="fu">Make_GF_features</span>(GF_layers_all, simulation, PS) <span class="co"># This takes lottttsss of time</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>results_full <span class="ot">&lt;-</span> <span class="fu">left_join</span>(results_clean, GF_features)</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(results_full, <span class="fu">paste0</span>(dir_name,<span class="st">"results_full.csv"</span>), <span class="at">row.names =</span> F)</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a><span class="co"># EXPORT FULL SIMULATION RESULTS AS TABLE</span></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>results_clean2 <span class="ot">&lt;-</span> <span class="fu">As_Database2</span>(results_full)  <span class="co"># Extract Features</span></span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(results_full, <span class="st">"results/Tillers.csv"</span>, <span class="at">row.names =</span> F) <span class="co"># Change name of simulation here </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section>
 <section id="results-analysis" class="level1">
 <h1>5. RESULTS ANALYSIS</h1>
@@ -467,109 +683,6 @@ div.csl-indent {
 <p>The number of tillers has a great effect on LiDAR features, and clear trends are visibles (ex GF_layer6).</p>
 <div class="cell">
 <div class="cell-output-display">
-<table class="table table-sm table-striped small">
-<caption>Table continues below</caption>
-<colgroup>
-<col style="width: 11%">
-<col style="width: 20%">
-<col style="width: 13%">
-<col style="width: 20%">
-<col style="width: 25%">
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: center;">ID</th>
-<th style="text-align: center;">simulationID</th>
-<th style="text-align: center;">simtime</th>
-<th style="text-align: center;">features</th>
-<th style="text-align: center;">Pparams</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: center;">1_140</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">140</td>
-<td style="text-align: center;">Mean_CH</td>
-<td style="text-align: center;">seed_true_maxTi</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">1_140</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">140</td>
-<td style="text-align: center;">Mean_GF</td>
-<td style="text-align: center;">seed_true_maxTi</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;">1_140</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">140</td>
-<td style="text-align: center;">Mean_Density</td>
-<td style="text-align: center;">seed_true_maxTi</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">1_140</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">140</td>
-<td style="text-align: center;">GFR1</td>
-<td style="text-align: center;">seed_true_maxTi</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;">1_140</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">140</td>
-<td style="text-align: center;">GFR2</td>
-<td style="text-align: center;">seed_true_maxTi</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">1_140</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">140</td>
-<td style="text-align: center;">GFR3</td>
-<td style="text-align: center;">seed_true_maxTi</td>
-</tr>
-</tbody>
-</table>
-<table class="table table-sm table-striped small">
-<colgroup>
-<col style="width: 25%">
-<col style="width: 25%">
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: center;">features_values</th>
-<th style="text-align: center;">Pparams_values</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: center;">44.59</td>
-<td style="text-align: center;">5.9</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">0.6907</td>
-<td style="text-align: center;">5.9</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;">131.1</td>
-<td style="text-align: center;">5.9</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">31</td>
-<td style="text-align: center;">5.9</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;">202</td>
-<td style="text-align: center;">5.9</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">300</td>
-<td style="text-align: center;">5.9</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="cell-output-display">
 <p><img src="CPB-LiDAR-PROJECT_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid" width="672"></p>
 </div>
 <div class="cell-output-display">
@@ -581,109 +694,6 @@ div.csl-indent {
 <h2 class="anchored" data-anchor-id="effect-of-stem-inter-lateral-distance">Effect of stem inter lateral distance</h2>
 <p>Stem inter-lateral distance seems to have effect on some features (e.g CHR2, GF_layer2), but not as strong as number of tillers.</p>
 <div class="cell">
-<div class="cell-output-display">
-<table class="table table-sm table-striped small">
-<caption>Table continues below</caption>
-<colgroup>
-<col style="width: 10%">
-<col style="width: 19%">
-<col style="width: 13%">
-<col style="width: 19%">
-<col style="width: 13%">
-<col style="width: 23%">
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: center;">ID</th>
-<th style="text-align: center;">simulationID</th>
-<th style="text-align: center;">simtime</th>
-<th style="text-align: center;">features</th>
-<th style="text-align: center;">Pparams</th>
-<th style="text-align: center;">features_values</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: center;">1_140</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">140</td>
-<td style="text-align: center;">Mean_CH</td>
-<td style="text-align: center;">stem_ln</td>
-<td style="text-align: center;">44.18</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">1_140</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">140</td>
-<td style="text-align: center;">Mean_GF</td>
-<td style="text-align: center;">stem_ln</td>
-<td style="text-align: center;">0.6902</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;">1_140</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">140</td>
-<td style="text-align: center;">Mean_Density</td>
-<td style="text-align: center;">stem_ln</td>
-<td style="text-align: center;">127.7</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">1_140</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">140</td>
-<td style="text-align: center;">GFR1</td>
-<td style="text-align: center;">stem_ln</td>
-<td style="text-align: center;">48</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;">1_140</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">140</td>
-<td style="text-align: center;">GFR2</td>
-<td style="text-align: center;">stem_ln</td>
-<td style="text-align: center;">207</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">1_140</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">140</td>
-<td style="text-align: center;">GFR3</td>
-<td style="text-align: center;">stem_ln</td>
-<td style="text-align: center;">316</td>
-</tr>
-</tbody>
-</table>
-<table class="table table-sm table-striped small">
-<colgroup>
-<col style="width: 23%">
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: center;">Pparams_values</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: center;">24</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">24</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;">24</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">24</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;">24</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">24</td>
-</tr>
-</tbody>
-</table>
-</div>
 <div class="cell-output-display">
 <p><img src="CPB-LiDAR-PROJECT_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid" width="672"></p>
 </div>
@@ -708,7 +718,7 @@ div.csl-indent {
 <section id="machine-learning-regression" class="level1">
 <h1>6. MACHINE LEARNING REGRESSION</h1>
 <p>In this part we will focus on the effect of number of tillers on LiDAR features, and try to regress the plant param.</p>
-<p>We first split the data in Training set and Test set. We define data_clean as our database for the machine learning : we only keep the features and the plant param (we rename it “t” as target).</p>
+<p>We first split the data in Training set and Test set. We define <em>data_clean</em> as our database for the machine learning : we only keep the features and the plant params (we rename it “<em>t</em>” as target).</p>
 <section id="model-selection" class="level2">
 <h2 class="anchored" data-anchor-id="model-selection">0) Model Selection</h2>
 <p>Before training models, we can try to find the best model to choose. We use here the <em>caret</em> library for model selection, and <em>neuralnet</em> package to build Neural Network regression.</p>
@@ -868,14 +878,47 @@ The final values used for the model were layer1 = 1, layer2 = 0 and layer3 = 0.<
 </div>
 <p>Let’s see the results</p>
 <div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict response of test set</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>NN_results1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(nn_fit1, test_set)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co"># pred_df &lt;- data.frame(NN = NN_results1, LM &lt;- Pred_lm, true = test_set$t)</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>pred_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">NN =</span> NN_results1, LM <span class="ot">&lt;-</span> Pred_lm, <span class="at">true =</span> test_set<span class="sc">$</span>t)</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pred_df) <span class="sc">+</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># geom_point(aes(x = true, y = LM), color = "blue") +</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> true, <span class="at">y =</span> NN), <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>() <span class="sc">+</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <p><img src="CPB-LiDAR-PROJECT_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid" width="672"></p>
 </div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>Er <span class="ot">=</span> <span class="fu">RMSE</span>(test_set<span class="sc">$</span>t, NN_results1)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>Er2 <span class="ot">=</span> <span class="fu">SSE</span>(test_set<span class="sc">$</span>t, NN_results1)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste0</span>(<span class="st">"RMSE : "</span>, Er, <span class="st">" | SSE : "</span>, Er2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "RMSE : 0.447593358888904 | SSE : 2.00339814921451"</code></pre>
 </div>
 </div>
 <p>It is pretty good too.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run NN mannually</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>NN1 <span class="ot">&lt;-</span> <span class="fu">neuralnet</span>(<span class="at">data =</span> train_set, </span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">formula =</span> t <span class="sc">~</span> Mean_GF <span class="sc">+</span> Mean_CH <span class="sc">+</span> GFR2 <span class="sc">+</span> GFR1 <span class="sc">+</span> GF_layer6, </span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">hidden =</span> <span class="fu">c</span>(<span class="dv">1</span>), </span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">rep =</span> <span class="dv">20</span>,</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>                 <span class="at">lifesign =</span> <span class="st">"none"</span>,</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>                 <span class="at">lifesign.step =</span> <span class="dv">2000</span>, </span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>                 <span class="at">algorithm =</span> <span class="st">"backprop"</span>,</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>                 <span class="at">threshold =</span> <span class="dv">1</span>,</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>                 <span class="at">learningrate =</span> <span class="fl">0.0001</span>)</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>NN_results1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(NN1, test_set)</span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>Er <span class="ot">=</span> <span class="fu">RMSE</span>(test_set<span class="sc">$</span>t, NN_results1)</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>Er2 <span class="ot">=</span> <span class="fu">SSE</span>(test_set<span class="sc">$</span>t, NN_results1)</span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste0</span>(<span class="st">"RMSE : "</span>, Er, <span class="st">" | SSE : "</span>, Er2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section>
 </section>
 <section id="conclusion" class="level1">

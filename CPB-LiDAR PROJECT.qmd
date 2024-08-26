@@ -6,6 +6,10 @@ editor: visual
 bibliography: PHENOROB.bib
 ---
 
+```{r setup, include=F}
+# knitr::opts_chunk$set(eval = FALSE)
+```
+
 **Marco D'Agostino^1,2^, Jordan Bates^1^, Guillaume Lobet^1,2^**
 
 ^*1*^*Agrosphere IBG3, Forschungszentrum Juelich, 52428 Juelich, Germany\
@@ -17,25 +21,25 @@ This project was funded by the Deutsche Forschungsgemeinschaft (DFG, German Rese
 
 # INTRODUCTION
 
-Field monitoring using **unmanned aircraft systems** (UAS) is a new promising field of research that aims to retrieve plant information with higher spectral, temporal and spatial resolution than destructive measurements. In particular, measures with **LiDAR** (Light Detection And Ranging) sensors mounted on UAS are useful to characterize canopy, and are also promising to estimate structural plant parameters (ex LAI, biomass) [@bates_estimating_2021].
+Field monitoring using **Unmanned Aircraft Systems** (UAS) is a new promising field of research that aims to retrieve plant information with higher spectral, temporal and spatial resolution than destructive measurements. In particular, measures with **LiDAR** (Light Detection And Ranging) sensors mounted on UAS are useful to characterize canopy, and are also promising to estimate structural plant parameters (ex LAI, biomass) [@bates_estimating_2021].
 
-Rough LiDAR data consists of a very dense point cloud of the field. With this point cloud, one can define a grid and apply algorithms to extract *metrics* : **Crop Heigh**t (indicator of height per gridcell), **Gap Fraction** (indicator of canopy density per grid cell) and **Intensity** (which will not be used here). Such metrics can next be correlated with destructive measurements, to build regressions to predict plant parameters from LiDAR data.
+Rough LiDAR data consists of a very dense point cloud of the field. With this point cloud, one can define a grid and apply algorithms to extract *metrics* : **Crop Heigh**t (indicator of height per gridcell), **Gap Fraction** (indicator of canopy density per grid cell) and **Intensity** (which will not be used here). Such metrics can next be correlated with destructive measurements, to build regressions and predict plant parameters from LiDAR data.
 
 ![](figures/Image1.png){fig-align="center"}
 
 More specifically, @bates_machine_2022 used a neural network to predict field biomass from LiDAR metrics.
 
-In this project, we want to investigate the idea of using [CPlantBox](https://github.com/Plant-Root-Soil-Interactions-Modelling/CPlantBox/) [@zhou2020], a plant structural model, to emulate LiDAR field data, and find relations between LiDAR metrics and plant parameters. CPlantBox is a functional-structural plant model (FSPM) that can generate 3D plant architectures. CPlantBox generates individual plants, and it is possible to loop the process to generate a whole virtual field. Since these virtual fields are composed of nodes and segments, it would be theoritically possible to apply algorithms to extract artificial LiDAR data (Crop Height and Gap Fraction) from it. It would be next possible to loop this process with different sets of plant parameters, and study the sensistivity of artificial LiDAR metrics to these plant parameters. Finally, by inverting the process, it would be possible to build regressions of plant parameters from artificial LiDAR metrics, and therefore bring new insights on LiDAR-based plant status predictions.
+In this project, we want to investigate the idea of using [CPlantBox](https://github.com/Plant-Root-Soil-Interactions-Modelling/CPlantBox/) [@zhou2020], a plant structural model, to emulate LiDAR field data, and find relations between LiDAR metrics and plant parameters. CPlantBox is a functional-structural plant model (FSPM) that can generate 3D plant architectures. CPlantBox generates individual plants. In this work we implemented code to loop the process and generate a whole virtual field. Since these virtual fields are composed of nodes and segments, it is possible to apply algorithms to extract artificial LiDAR data (Crop Height and Gap Fraction) from it. It would be next possible to loop this process with different sets of plant parameters, and study the sensistivity of artificial LiDAR metrics to these plant parameters. Finally, by inverting the process, it would be possible to build regressions of plant parameters from artificial LiDAR metrics, and therefore bring new insights on LiDAR-based plant status predictions.
 
 The goals of this project are :
 
 1.  **Parametrize CPlantBox to generate pseudo-realistic wheat field with different sets of plant parameter**
 
-2.  **Convert CPlantBox field simulation into LiDAR-like data (basically create artificial LiDAR metrics from CPlantBox field simulation).**
+2.  **Convert CPlantBox field simulation into LiDAR-like data (basically create artificial LiDAR metrics from CPlantBox field simulations).**
 
 3.  **Use machine learning techniques to retrieve plant parameters from artificial LiDAR metrics.**
 
-In this notebook we first present a code pipeline to generate CPlantBox-based virtual fields. Then we use functions to extract artificial LiDAR metrics (Crop Height and Gap Fraction) from the virtual fields. We loop this process to investigate the sensitivity of these LiDAR metrics to 3 plant parameters : stem growth rate, stem inter-lateral distance and number of tillers. At last, we test some simple machine learning methods (linear regression and neural network) to recover plant parameters from LiDAR metrics.
+In this notebook we first present a code pipeline to generate CPlantBox-based virtual fields. Then we use functions to extract artificial LiDAR metrics (Crop Height and Gap Fraction) from the virtual fields. We loop this process to investigate the sensitivity of these LiDAR metrics to 3 plant parameters : stem growth rate, stem inter-lateral distance and number of tillers. At last, we test some very simple machine learning methods (linear regression and neural network) to recover plant parameters from LiDAR metrics.
 
 # SET UP
 
@@ -51,10 +55,9 @@ In the following chunk, we define our paths :
 
 -   *path_CPB* is the path to our python functions
 
--   *path_R_functions* is the path to utilitary functions for this notebook.
+-   *path_R_functions* is the path to utilitarian functions for this notebook.
 
-```{r, echo = F}
-options(rstudio.help.showDataPreview = FALSE) # Prevent bug
+```{r}
 rm(list=ls()) # clean workspace
 # setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # Set working directory to the current file
 
@@ -74,7 +77,7 @@ path_R_functions <- "R Functions/"
 
 Installation/loading of libraries :
 
-```{r, include=FALSE}
+```{r, results='hide', message=FALSE, warning=FALSE}
 #==========================================================================
 libs <- c("fmsb", "SciViews", "pander", "visreg", "readxl", "EnvStats", "FactoMineR", "factoextra", "knitr", "data.table", "reticulate", "xml2", "tidyverse", "dplyr", "plyr", "viridis", "Hmisc", "ggplot2", "gridExtra", "ggpubr","cowplot", "stats", "emmeans")
 # "riot"
@@ -101,9 +104,9 @@ for(i in fct){
 
 The data used in this work is kindly provided by **J. Bates, C. Montzka, R. Bajracharya and F. Jonard**, and were collected during a flight campaign at the PhenoRob Central Experiment, Campus Klien Altendorf (CKA), Germany, in 2021. More specifically, we focus on one plot composed of 6 subplots of each 1.5 x 3 m. The team of J. Bates measured Crop Height (CH), Gap Fraction (GF) and Intensity (I) at 7 dates using LiDAR sensors mounted on UAS. They also took destructive measurements ; BBCH (development stage) and Biomass.
 
-We used these data only to compare and calibrate our simulations.
+We only used these data to compare and calibrate our simulations.
 
-```{r, include = F}
+```{r, eval = T}
 files <- list.files(path = "data/LiDAR_Metrics/", pattern = ".csv")
 
 LiDAR_metrics <- data.frame()
@@ -127,14 +130,13 @@ LiDAR_metrics <- inner_join(LiDAR_metrics, BBCH, by = "date")
 BBCH2 <- read_excel(path = "data/myCKA.xlsx", sheet = "BBCH")  
 Biomass <- read_excel(path = "data/myCKA.xlsx", sheet = "biomass") 
 BBCH_scale <- read.csv("data/BBCH_scale.csv")
-
 ```
 
 ### Destructive data
 
 See the work of Jordan Bates.
 
-```{r, echo = F, eval = F}
+```{r, eval = F}
 biom <- ggplot(data = Biomass) +
   geom_line(aes(x = Date, y = Value, color = Organ)) +
   # geom_smooth(aes(x = Date, y = Value, color = Organ)) +
@@ -150,7 +152,7 @@ bbch <- ggplot(data = BBCH2) +
 plot_grid(biom, bbch, ncol = 1)
 ```
 
-```{r, echo = F, eval = F}
+```{r, eval = F}
 GF_grid <- ggplot(data = LiDAR_metrics,
        aes(x = x-min(x), y = y-min(y), color = GF, fill = GF)) +
   #geom_point(size = , shape = 15) +
@@ -204,11 +206,11 @@ In this section we implement functions to use CPlantBox to generate individual p
 
 ![Example of virtual field generated with CPlantBox](figures/Image2.png){fig-align="center"}
 
-First we define all plant parameters of our field. We use a XML param file called *Wheat.xml* that will be read by CPlantBox. We update that file when we change params value. For these tests, results will be stored in Test folder.
+First we define all plant parameters of our field. We use a XML parameter file called *Wheat.xml* that will be read by CPlantBox. We update that file when we change parameters value. For these tests, results will be stored in *Test* folder.
 
 We add some new parameters in the XML that define the field we want to generate : number of rows, columns, plots, etc... These field parameters are not directly read by CPlantBox, but are inputs of custom scripts that loop CPlantBox to arrange individual plants in a field setup.
 
-```{r}
+```{r, eval = F}
 simtime = 130.
 dx = 10.
 N_iter = simtime/dx
@@ -283,7 +285,7 @@ The argument *type* can be set to "solo" to simulate one plant, "field" to simul
 
 With the following code, we run CPlantBox for one unique plant and plot the result.
 
-```{r, eval = FALSE}
+```{r, eval = F}
 #==================================================================================
 # Write CPB executable
 Write_CPB(type = "solo",                              # To generate one plant
@@ -346,7 +348,7 @@ CPlantBox(path_python3, "python_files/CPB_timeseries.py")
 
 Results from CPlantBox are stored as point cloud in a csv file. This is a test simulation, just to show how it looks like.
 
-```{r, echo = F}
+```{r, eval = F}
 coords = read.csv("test/Test.csv") # Load the csv
 #==============================================================================
 result_map <- ggplot(data = coords) +
@@ -366,12 +368,12 @@ With the following code, we apply algorithms to extract LiDAR metrics (Crop Heig
 
 First we extract Crop Height (CH), Gap Fraction (GF) and Density from the point cloud, per grid cell :
 
-```{r, include = F}
+```{r, eval = F}
 source("R Functions/Extract_Metrics.R")
 Metrics <- Extract_Metrics(coords, gridsize = 20, method = "max") # Extract CH and GF
 ```
 
-```{r, echo = F}
+```{r, eval = F}
 h1 <- ggplot(data = Metrics) +
   geom_histogram(aes(x = CH), bins = 20) +
   xlab("Crop Height") +
@@ -423,14 +425,14 @@ Next we can also extract Gap Fraction per layers, similarly to how @bates_machin
 
 ![](figures/Image3.png){fig-align="center"}
 
-```{r, echo = F, include=F}
+```{r, eval = F}
 source("R Functions/Extract_GF_layers.R")
 GF_Layers <- Extract_GF_layers(coords, gridsize = 20, DT = 1, method = "mean", n_layers = 6)
 ```
 
 We therefore extracted here Gap Fraction in 6 layers of 20cm height.
 
-```{r, eval = T, echo = F}
+```{r, eval = F}
 ggplot(data = GF_Layers) +
   geom_tile(aes(x = X, y = Y, fill = GF)) +
   scale_color_viridis() +
@@ -519,11 +521,11 @@ Next, define what params and how you will make them change.
 
 In this code we made a sensitivity analysis of the effect of 3 plant parameters on LiDAR metrics :
 
-*sln* : stem inter-lateral distance, so the distance between two leaves. It is an interesting parameter since it will define the number of total leaves, and therefore is expected to influence Gap Fraction in different layers
+-   *sln* : stem inter-lateral distance, so the distance between two leaves. It is an interesting parameter since it will define the number of total leaves, and therefore is expected to influence Gap Fraction in different layers
 
-*max_t* : the maximum number of tillers. This is an interesting parameter to know in fields since it defines the devlopment stage of the plant, and is expected to greatly influence Gap Fraction through point density
+-   *max_t* : the maximum number of tillers. This is an interesting parameter to know in fields since it defines the devlopment stage of the plant, and is expected to greatly influence Gap Fraction through point density
 
-*s_r* : The stem growth rate. It is a very important physiological parameter and is expected to influence Crop Height.
+-   *s_r* : The stem growth rate. It is a very important physiological parameter and is expected to influence Crop Height.
 
 ```{r, eval = F}
 # ======================================================================
@@ -559,7 +561,7 @@ To simplify this table and try to extract unique informations for each field, we
 
 To summarize ; each field simulation is characterized by the plant input parameter, and 16 features values. These features values will become explaining variables when we will try to recover plant parameters from LiDAR data.
 
-```{r, eval = F, echo = F}
+```{r, eval = F}
 # =============================================================================
 dir_name <- "results/2023-12-14_1/" # Change the directory to last simulation
 # =============================================================================
@@ -602,9 +604,8 @@ The number of tillers has a great effect on LiDAR features, and clear trends are
 
 ```{r, echo = F}
 Tillers <- read.csv("results/Tillers.csv")
-
 Tillers2 <- As_Database2(Tillers)
-pander(head(Tillers2))
+# pander(head(Tillers2))
 
 ggplot(data = Tillers2 %>%filter(features != "Mean_Density")) +
   geom_point(aes(x = Pparams_values,
@@ -625,7 +626,7 @@ Stem inter-lateral distance seems to have effect on some features (e.g CHR2, GF_
 ```{r, echo = F}
 Stem_LN <- read.csv("results/Stem_Inter_Lateral_Distance.csv")
 Stem_LN2 <- As_Database2(Stem_LN)
-pander(head(Stem_LN2))
+# pander(head(Stem_LN2))
 
 # svg("plots/Results_all_stem_r.svg", height = 6, width = 10)
 ggplot(data = Stem_LN2 %>%filter(features != "Mean_Density")) +
@@ -668,10 +669,10 @@ corrplot::corrplot(cor(Stem_GR[,-c(1,2,3)]))
 
 In this part we will focus on the effect of number of tillers on LiDAR features, and try to regress the plant param.
 
-We first split the data in Training set and Test set. We define data_clean as our database for the machine learning : we only keep the features and the plant param (we rename it "t" as target).
+We first split the data in Training set and Test set. We define *data_clean* as our database for the machine learning : we only keep the features and the plant params (we rename it "*t*" as target).
 
 ```{r, echo = F}
-set.seed(1) # For reprocucting random tirages
+set.seed(1) # For reproducting randomness
 
 data <- read.csv(file = "results/Tillers.csv")
 data_clean <- subset(data, select = c(4:21))          # take only explainable varaibles and target
@@ -776,7 +777,7 @@ nn_fit1
 
 Let's see the results
 
-```{r, eval = T, echo = F}
+```{r, eval = T}
 # Predict response of test set
 NN_results1 <- predict(nn_fit1, test_set)
 
@@ -796,7 +797,7 @@ print(paste0("RMSE : ", Er, " | SSE : ", Er2))
 
 It is pretty good too.
 
-```{r, include = T, eval = F, echo = F}
+```{r, eval = F}
 # Run NN mannually
 
 NN1 <- neuralnet(data = train_set, 
